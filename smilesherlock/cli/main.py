@@ -100,6 +100,60 @@ def init() -> None:
 
 
 @app.command()
+def update() -> None:
+    """
+    Fetch and install the latest code updates from GitHub.
+    Preserves all local databases, caches, and logs.
+    """
+    console.print(Panel("[bold cyan]SmileSherlock Updater[/bold cyan]", expand=False))
+    
+    # Locate the repository root dynamically based on this file's location
+    # main.py is in smilesherlock/cli/ -> parent is cli/ -> parent is smilesherlock/ -> parent is repo root
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    
+    if not (repo_root / ".git").exists():
+        console.print("[red]✖ Could not find the .git directory. You must run this inside a cloned repository to use auto-update.[/red]")
+        raise typer.Exit(code=1)
+
+    # 1. Pull updates from GitHub
+    with console.status("[bold yellow]Checking GitHub for updates...[/bold yellow]"):
+        try:
+            pull_process = subprocess.run(
+                ["git", "pull"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            output = pull_process.stdout.strip()
+            
+            if "Already up to date" in output:
+                console.print("[green]✔[/green] SmileSherlock is already on the latest version!")
+                return
+            else:
+                console.print("[blue]ℹ[/blue] New updates found and downloaded from GitHub:")
+                console.print(f"[dim]{output}[/dim]")
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]✖ Failed to fetch updates from GitHub:\n{e.stderr}[/red]")
+            raise typer.Exit(code=1)
+
+    # 2. Apply package updates
+    with console.status("[bold yellow]Applying code updates and refreshing dependencies...[/bold yellow]"):
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-e", ".[dev]"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("\n[green]✨ Update complete! Your local databases and caches were preserved safely.[/green]")
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]✖ Failed to apply python package updates:\n{e.stderr}[/red]")
+            raise typer.Exit(code=1)
+
+
+@app.command()
 def reinstall(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
