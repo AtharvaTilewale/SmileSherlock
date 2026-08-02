@@ -388,14 +388,17 @@ def download(
     cid: Optional[int] = typer.Argument(None, help="PubChem CID to download"),
     input_file: Optional[Path] = typer.Option(None, "--file", "-i", help="Batch download from file (CSVs, SMI, etc.)"),
     format: str = typer.Option("sdf", "--format", "-f", help="Structure format (sdf, mol, pdb, png)"),
-    dimension: str = typer.Option("3d", "--3d/--2d", help="2D or 3D structure"),
+    is_3d: bool = typer.Option(True, "--3d/--2d", help="Download 3D structure (use --2d for 2D)"),
     output_dir: Path = typer.Option(Path("structures"), "--output-dir", "-o", help="Output directory"),
     force: bool = typer.Option(False, "--force", help="Overwrite existing files (disables resume)"),
 ) -> None:
     """Download chemical structures from PubChem (Single or Batch)."""
     if not cid and not input_file:
-        console.print("[red]✖ You must provide either a CID or an --file input.[/red]")
+        console.print("[red]  You must provide either a CID or an --file input.[/red]")
         raise typer.Exit(code=1)
+
+    # Translate the boolean flag back to the string your downloader expects
+    dimension = "3d" if is_3d else "2d"
 
     from smilesherlock import download_structure, lookup
     from smilesherlock.utils.parsers import parse_compounds_file
@@ -414,13 +417,13 @@ def download(
                 console.print(f"[blue]ℹ[/blue] {status}")
             else:
                 console.print(f"[red]✖[/red] Failed to download: {status}")
-    
+        
     # 2. Batch Download from File
     if input_file:
         if not input_file.exists():
-            console.print(f"[red]✖ Input file not found: {input_file}[/red]")
+            console.print(f"[red]  Input file not found: {input_file}[/red]")
             raise typer.Exit(code=1)
-        
+            
         report_file = output_dir / f"{input_file.stem}_download_report.log"
         
         queries = parse_compounds_file(input_file)
@@ -451,7 +454,7 @@ def download(
                     compound = lookup(query, use_cache=True)
                     if compound and compound.cid:
                         target_cid = compound.cid
-                
+                        
                 if target_cid:
                     status = download_structure(target_cid, format, dimension, out_dir_str, force)
                     if status == "Downloaded":
@@ -468,17 +471,17 @@ def download(
                     log_entries.append(f"[FAILED]  Query: '{query}' -> Reason: Could not resolve PubChem CID")
                     
                 progress.advance(task)
-                
+            
         # Save exact status log
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("\n".join(log_entries))
-                
+            
         console.print(f"\n[green]✔[/green] Batch download complete!")
-        console.print(f"  • Downloaded: [green]{success}[/green]")
-        console.print(f"  • Skipped (Already exist): [blue]{skipped}[/blue]")
-        console.print(f"  • Failed/Not Found: [red]{failed}[/red]")
-        console.print(f"  • Saved in: [cyan]{output_dir}[/cyan]")
-        console.print(f"  • Report log saved to: [cyan]{report_file}[/cyan]")
+        console.print(f"    Downloaded: [green]{success}[/green]")
+        console.print(f"    Skipped (Already exist): [blue]{skipped}[/blue]")
+        console.print(f"    Failed/Not Found: [red]{failed}[/red]")
+        console.print(f"    Saved in: [cyan]{output_dir}[/cyan]")
+        console.print(f"    Report log saved to: [cyan]{report_file}[/cyan]")
 
 
 if __name__ == "__main__":
