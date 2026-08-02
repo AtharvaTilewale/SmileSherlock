@@ -102,55 +102,92 @@ def init() -> None:
 @app.command()
 def update() -> None:
     """
-    Fetch and install the latest code updates from GitHub.
-    Preserves all local databases, caches, and logs.
+    Smart updater: Fetches updates from GitHub if cloned, 
+    or upgrades via pip if installed from PyPI.
     """
-    console.print(Panel("[bold cyan]SmileSherlock Updater[/bold cyan]", expand=False))
+    import requests
     
-    # Locate the repository root dynamically based on this file's location
-    # main.py is in smilesherlock/cli/ -> parent is cli/ -> parent is smilesherlock/ -> parent is repo root
+    console.print(Panel("[bold cyan]SmileSherlock Smart Updater[/bold cyan]", expand=False))
+    
+    # Locate the repository root dynamically
     repo_root = Path(__file__).resolve().parent.parent.parent
+    is_git_repo = (repo_root / ".git").exists()
     
-    if not (repo_root / ".git").exists():
-        console.print("[red]✖ Could not find the .git directory. You must run this inside a cloned repository to use auto-update.[/red]")
-        raise typer.Exit(code=1)
+    if is_git_repo:
+        # --- GITHUB UPDATE LOGIC ---
+        with console.status("[bold yellow]Detected Git repository. Checking GitHub for updates...[/bold yellow]"):
+            try:
+                pull_process = subprocess.run(
+                    ["git", "pull"],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                output = pull_process.stdout.strip()
+                
+                if "Already up to date" in output:
+                    console.print("[green]✔[/green] SmileSherlock is already on the latest GitHub version!")
+                    return
+                else:
+                    console.print("[blue]ℹ[/blue] New updates found and downloaded from GitHub:")
+                    console.print(f"[dim]{output}[/dim]")
+            except subprocess.CalledProcessError as e:
+                console.print(f"[red]✖ Failed to fetch updates from GitHub:\n{e.stderr}[/red]")
+                raise typer.Exit(code=1)
 
-    # 1. Pull updates from GitHub
-    with console.status("[bold yellow]Checking GitHub for updates...[/bold yellow]"):
-        try:
-            pull_process = subprocess.run(
-                ["git", "pull"],
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            output = pull_process.stdout.strip()
-            
-            if "Already up to date" in output:
-                console.print("[green]✔[/green] SmileSherlock is already on the latest version!")
-                return
-            else:
-                console.print("[blue]ℹ[/blue] New updates found and downloaded from GitHub:")
-                console.print(f"[dim]{output}[/dim]")
-        except subprocess.CalledProcessError as e:
-            console.print(f"[red]✖ Failed to fetch updates from GitHub:\n{e.stderr}[/red]")
-            raise typer.Exit(code=1)
-
-    # 2. Apply package updates
-    with console.status("[bold yellow]Applying code updates and refreshing dependencies...[/bold yellow]"):
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-e", ".[dev]"],
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            console.print("\n[green]✨ Update complete! Your local databases and caches were preserved safely.[/green]")
-        except subprocess.CalledProcessError as e:
-            console.print(f"[red]✖ Failed to apply python package updates:\n{e.stderr}[/red]")
-            raise typer.Exit(code=1)
+        with console.status("[bold yellow]Applying code updates and refreshing dependencies...[/bold yellow]"):
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-e", ".[dev]"],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                console.print("\n[green]✨ GitHub update complete! Your local databases and caches were preserved safely.[/green]")
+            except subprocess.CalledProcessError as e:
+                console.print(f"[red]✖ Failed to apply python package updates:\n{e.stderr}[/red]")
+                raise typer.Exit(code=1)
+                
+    else:
+        # --- PyPI UPDATE LOGIC ---
+        with console.status("[bold yellow]Detected PyPI installation. Checking PyPI for updates...[/bold yellow]"):
+            try:
+                response = requests.get("https://pypi.org/pypi/smilesherlock/json", timeout=5)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    latest_version = data["info"]["version"]
+                    
+                    # Basic SemVer comparison
+                    def parse_ver(v):
+                        return tuple(int(x) for x in v.split('.') if x.isdigit())
+                        
+                    if parse_ver(latest_version) > parse_ver(__version__):
+                        console.print(f"[yellow]★ A new version of SmileSherlock is available! ({__version__} -> {latest_version})[/yellow]")
+                        console.print("[bold yellow]Upgrading package automatically via pip...[/bold yellow]")
+                        
+                        try:
+                            subprocess.check_call(
+                                [sys.executable, "-m", "pip", "install", "--upgrade", "smilesherlock"],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL
+                            )
+                            console.print(f"\n[green]✨ Successfully upgraded to version {latest_version}![/green]")
+                        except subprocess.CalledProcessError:
+                            console.print(f"[red]✖ Failed to upgrade automatically. Please run manually:[/red]")
+                            console.print("[cyan]pip install --upgrade smilesherlock[/cyan]")
+                            raise typer.Exit(code=1)
+                    else:
+                        console.print(f"[green]✔[/green] You are running the latest PyPI version ({__version__}).")
+                else:
+                    console.print(f"[red]✖ Could not check PyPI. (Status: {response.status_code})[/red]")
+                    raise typer.Exit(code=1)
+                    
+            except requests.RequestException as e:
+                console.print(f"[red]✖ Failed to connect to PyPI:\n{e}[/red]")
+                raise typer.Exit(code=1)
 
 
 @app.command()
