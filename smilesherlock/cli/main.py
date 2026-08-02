@@ -171,12 +171,25 @@ def download(
     dimension: str = typer.Option("3d", "--3d/--2d", help="2D or 3D structure"),
 ) -> None:
     """Download a chemical structure from PubChem."""
-    console.print(
-        Panel(
-            "[bold yellow]Feature coming in Phase 4[/bold yellow]\nStructure download",
-            expand=False,
+    
+    if format.lower() == "sdf" and dimension.lower() == "3d":
+        from smilesherlock.core.pubchem import PubChemClient
+        
+        with console.status(f"[bold green]Downloading 3D SDF for CID {cid}...[/bold green]"):
+            client = PubChemClient()
+            status = client.download_3d_sdf(cid=cid, output_dir="3D_structures")
+            
+            if status == "Downloaded":
+                console.print(f"[green]✔[/green] Successfully downloaded 3D SDF to 3D_structures/{cid}.sdf")
+            else:
+                console.print(f"[red]✖[/red] Failed to download: {status}")
+    else:
+        console.print(
+            Panel(
+                f"[bold yellow]Only 3D SDF download is currently implemented.[/bold yellow]",
+                expand=False,
+            )
         )
-    )
 
 
 if __name__ == "__main__":

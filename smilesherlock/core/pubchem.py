@@ -1,5 +1,6 @@
 """PubChem REST API client for compound property lookup."""
 
+import os
 import time
 import urllib.parse
 from typing import Any, Dict, Optional, Union
@@ -32,8 +33,8 @@ class PubChemCompound(BaseModel):
 class PubChemClient:
     """Client for interacting with the PubChem PUG REST API."""
 
+    # FIX: Removed 'CID' from PROPERTIES. Requesting it explicitly causes a 400 Bad Request.
     PROPERTIES = [
-        "CID",
         "IUPACName",
         "MolecularFormula",
         "MolecularWeight",
@@ -86,16 +87,7 @@ class PubChemClient:
     def lookup(
         self, query: Union[str, int], search_type: str = "auto"
     ) -> Optional[PubChemCompound]:
-        """
-        Lookup compound metadata from PubChem.
-
-        Args:
-            query: SMILES, CID, Compound Name, InChI, or InChIKey.
-            search_type: 'auto', 'smiles', 'cid', 'name', 'inchi', 'inchikey'.
-
-        Returns:
-            PubChemCompound instance or None.
-        """
+        """Lookup compound metadata from PubChem."""
         query_str = str(query).strip()
         if not query_str:
             return None
@@ -112,15 +104,12 @@ class PubChemClient:
             else:
                 search_type = "name"
 
+        # FIX: Using GET with urllib.parse.quote as per your working snippet
+        encoded_query = urllib.parse.quote(query_str)
         prop_list = ",".join(self.PROPERTIES)
-
-        if search_type == "smiles":
-            url = f"{self.base_url}/compound/smiles/property/{prop_list}/JSON"
-            json_data = self._make_request(url, method="POST", data={"smiles": query_str})
-        else:
-            encoded_query = urllib.parse.quote(query_str)
-            url = f"{self.base_url}/compound/{search_type}/{encoded_query}/property/{prop_list}/JSON"
-            json_data = self._make_request(url, method="GET")
+        
+        url = f"{self.base_url}/compound/{search_type}/{encoded_query}/property/{prop_list}/JSON"
+        json_data = self._make_request(url, method="GET")
 
         if not json_data or "PropertyTable" not in json_data:
             return None
@@ -128,7 +117,7 @@ class PubChemClient:
         props = json_data["PropertyTable"]["Properties"][0]
 
         return PubChemCompound(
-            cid=props.get("CID"),
+            cid=props.get("CID"),  # CID is safely extracted here even though it wasn't in the URL properties
             input_query=query_str,
             smiles=props.get("CanonicalSMILES"),
             canonical_smiles=props.get("CanonicalSMILES"),
@@ -143,3 +132,29 @@ class PubChemClient:
             hbond_donor_count=int(props["HBondDonorCount"]) if props.get("HBondDonorCount") is not None else None,
             hbond_acceptor_count=int(props["HBondAcceptorCount"]) if props.get("HBondAcceptorCount") is not None else None,
         )
+
+    def download_3d_sdf(self, cid: int, output_dir: str = '3D_structures') -> str:
+        """
+        Download 3D SDF structure from PubChem for given CID.
+        Implemented based on the provided working snippet.
+        """
+        try:
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            
+            url = f"{self.base_url}/compound/cid/{cid}/record/SDF/?record_type=3d"
+            
+            time.sleep(self.rate_limit_delay)
+            response = requests.get(url, timeout=self.timeout)
+            
+            if response.status_code == 200:
+                output_file = os.path.join(output_dir, f"{cid}.sdf")
+                with open(output_file, 'w') as f:
+                    f.write(response.text)
+                return 'Downloaded'
+            elif response.status_code == 404:
+                return 'Not Available'
+            else:
+                return f'Error {response.status_code}'
+        except Exception as e:
+            return f'Download Error: {str(e)}'
