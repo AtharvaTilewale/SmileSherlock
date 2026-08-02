@@ -6,6 +6,7 @@
 
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21763825.svg)](https://doi.org/10.5281/zenodo.21763825)
 [![PyPI](https://img.shields.io/pypi/v/smilesherlock)](https://pypi.org/project/smilesherlock/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -122,7 +123,9 @@ If you use SmileSherlock in your research, please cite:
 ```bibtex
 @software{smilesherlock2026,
   author={Atharva Tilewale},
-  title={SmileSherlock: High-performance SMILES validation and PubChem lookup},
+  doi={10.5281/zenodo.21763825},
+  month={8},
+  title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
   version={1.1.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
