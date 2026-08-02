@@ -180,6 +180,8 @@ def batch(
     # Determine default output if not provided
     if not output_file:
         output_file = input_file.with_name(f"{input_file.stem}_results.{format}")
+        
+    report_file = output_file.with_name(f"{output_file.stem}_report.log")
 
     try:
         queries = parse_compounds_file(input_file)
@@ -195,6 +197,7 @@ def batch(
         raise typer.Exit(code=1)
 
     results = []
+    log_entries = []
     found_count = 0
 
     # Rich progress bar
@@ -213,19 +216,26 @@ def batch(
             if compound:
                 results.append(compound)
                 found_count += 1
+                log_entries.append(f"[SUCCESS] Query: '{query}' -> Found CID: {compound.cid}")
             else:
                 # If not found, append a blank record with the input query so it isn't lost
                 from smilesherlock.core.pubchem import PubChemCompound
                 results.append(PubChemCompound(input_query=query))
+                log_entries.append(f"[FAILED]  Query: '{query}' -> Reason: Not found in PubChem")
                 
             progress.advance(task)
 
     try:
+        # Save exact status log
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(log_entries))
+            
         export_results(results, output_file, format)
         console.print(f"\n[green]✔[/green] Batch processing complete!")
         console.print(f"  • Found: [green]{found_count}[/green]")
         console.print(f"  • Missed: [red]{len(queries) - found_count}[/red]")
         console.print(f"  • Results saved to: [cyan]{output_file}[/cyan]")
+        console.print(f"  • Report log saved to: [cyan]{report_file}[/cyan]")
     except Exception as e:
         console.print(f"[red]✖ Failed to export results: {e}[/red]")
 
@@ -249,6 +259,7 @@ def download(
     from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
     out_dir_str = str(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Single CID Download
     if cid:
@@ -267,6 +278,8 @@ def download(
             console.print(f"[red]✖ Input file not found: {input_file}[/red]")
             raise typer.Exit(code=1)
         
+        report_file = output_dir / f"{input_file.stem}_download_report.log"
+        
         queries = parse_compounds_file(input_file)
         queries = list(dict.fromkeys(queries))  # Remove duplicates
         
@@ -275,6 +288,7 @@ def download(
         success = 0
         skipped = 0
         failed = 0
+        log_entries = []
         
         with Progress(
             SpinnerColumn(),
@@ -299,20 +313,29 @@ def download(
                     status = download_structure(target_cid, format, dimension, out_dir_str, force)
                     if status == "Downloaded":
                         success += 1
+                        log_entries.append(f"[SUCCESS] Query: '{query}' -> CID {target_cid} -> Downloaded")
                     elif "Skipped" in status:
                         skipped += 1
+                        log_entries.append(f"[SKIPPED] Query: '{query}' -> CID {target_cid} -> Reason: {status}")
                     else:
                         failed += 1
+                        log_entries.append(f"[FAILED]  Query: '{query}' -> CID {target_cid} -> Reason: {status}")
                 else:
                     failed += 1
+                    log_entries.append(f"[FAILED]  Query: '{query}' -> Reason: Could not resolve PubChem CID")
                     
                 progress.advance(task)
+                
+        # Save exact status log
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(log_entries))
                 
         console.print(f"\n[green]✔[/green] Batch download complete!")
         console.print(f"  • Downloaded: [green]{success}[/green]")
         console.print(f"  • Skipped (Already exist): [blue]{skipped}[/blue]")
         console.print(f"  • Failed/Not Found: [red]{failed}[/red]")
         console.print(f"  • Saved in: [cyan]{output_dir}[/cyan]")
+        console.print(f"  • Report log saved to: [cyan]{report_file}[/cyan]")
 
 
 if __name__ == "__main__":
