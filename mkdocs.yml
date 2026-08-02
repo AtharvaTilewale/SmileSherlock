@@ -20,4 +20,8 @@ theme:
 
 nav:
   - Home: index.md
+  - Practical Guide: practical_guide.md
+  - API Reference: api_reference.md
+  - Configuration: configuration.md
   - Changelog: changelog.md
+  - Contributing: contributing.md

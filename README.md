@@ -1,7 +1,7 @@
 # SmileSherlock
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AtharvaTilewale/SmileSherlock/main/docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="800" />
+  <img src="https://raw.githubusercontent.com/AtharvaTilewale/SmileSherlock/main/docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="700" />
 </p>
 
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
@@ -80,84 +80,7 @@ results = lookup_file("compounds.csv", output_format="xlsx")
 # Download structure
 download_structure(5282253, format="sdf", dimension="3d")
 ```
-<!-- ## Cookbook / Advanced Examples
-
-### CLI: Advanced Lookups
-
-```bash
-# Lookup by common name and bypass the local SQLite cache (force fresh data)
-smilesherlock lookup "Aspirin" --no-cache
-
-# Output raw JSON (perfect for piping into jq or other scripts)
-smilesherlock lookup "CC(=O)OC1=CC=CC=C1C(=O)O" --json
-
-# Explicitly search by CID (prevents interpreting numbers as SMILES/Names)
-smilesherlock lookup 2244 --cid
-```
-
-### CLI: Advanced Batch Processing & Downloading
-
-```bash
-# Process a batch file but keep duplicate entries
-# (default behavior removes duplicates)
-smilesherlock batch raw_data.csv --keep-duplicates --format json
-
-# Batch download 3D SDF structures and overwrite existing files
-smilesherlock download -i compounds.smi --format sdf --3d --force
-
-# Save output to a custom directory
-smilesherlock batch input.txt \
-    --output /path/to/my_project/clean_data.csv
-```
-
-### Python API: Extracting Specific Properties
-
-If you are using SmileSherlock in your own Python scripts or Jupyter notebooks, you can directly access the returned `PubChemCompound` object.
-
-```python
-from smilesherlock import lookup
-
-# Search by Name or SMILES
-compound = lookup("Ibuprofen")
-
-if compound:
-    print(f"CID: {compound.cid}")
-    print(f"IUPAC Name: {compound.iupac_name}")
-    print(f"Molecular Weight: {compound.molecular_weight} g/mol")
-    print(f"XLogP (Lipophilicity): {compound.xlogp}")
-    print(f"H-Bond Donors: {compound.hbond_donor_count}")
-    print(f"H-Bond Acceptors: {compound.hbond_acceptor_count}")
-else:
-    print("Compound not found in PubChem.")
-```
-
-### Python API: Custom Batch Processing
-
-Process a list of SMILES directly without reading from a file.
-
-```python
-from smilesherlock import lookup
-
-smiles_list = [
-    "c1ccccc1",
-    "CC(=O)O",
-    "Invalid_Smiles_String"
-]
-
-results = []
-
-for smiles in smiles_list:
-    # use_cache=True is the default
-    compound = lookup(smiles, use_cache=True)
-
-    if compound:
-        results.append(compound)
-
-print(
-    f"Successfully retrieved {len(results)} "
-    f"out of {len(smiles_list)} compounds."
-)
-``` -->
+For more detailed API documentation, see the **[API Reference](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/api_reference.md)** page.
 
 ## Documentation
 
@@ -174,52 +97,7 @@ For complete tutorials and advanced usage examples, see the **[Practical Guide](
 
 ## Configuration
 
-SmileSherlock respects environment variables for configuration:
-
-```bash
-export SMILESHERLOCK_CACHE_DIR=/custom/cache
-export SMILESHERLOCK_LOG_LEVEL=DEBUG
-export SMILESHERLOCK_MAX_WORKERS=8
-```
-
-Configuration is read from (in order):
-1. Environment variables (prefix: `SMILESHERLOCK_`)
-2. `.env` file in current directory
-3. Built-in defaults
-
-## Project Structure
-
-```
-SmileSherlock/
-├── .github/workflows/      # CI/CD workflows
-├── smilesherlock/          # Main package
-│   ├── __init__.py         # Public API
-│   ├── config.py           # Configuration management
-│   ├── logging_config.py   # Logging setup
-│   ├── cli.py              # CLI entry point
-│   ├── cli/
-│   │   ├── __init__.py
-│   │   └── main.py         # Typer CLI application
-│   ├── core/               # Core functionality
-│   │   ├── __init__.py
-│   │   ├── smiles.py       # SMILES validation
-│   │   ├── pubchem.py      # PubChem API
-│   │   └── database.py     # SQLite caching
-│   └── utils/              # Utilities
-│       ├── __init__.py
-│       ├── file_io.py      # File parsing
-│       ├── export.py       # Export formats
-│       └── parsers.py      # Input parsers
-├── tests/                  # Test suite
-├── docs/                   # Documentation
-├── .readthedocs.yaml       # Read the Docs config
-├── CITATION.cff            # Citation metadata
-├── CHANGELOG.md            # Release history
-├── mkdocs.yml              # Documentation config
-├── pyproject.toml          # Package metadata & dependencies
-├── README.md               # This file
-└── LICENSE                 # MIT License
-```
+For configuration and architecture details, see the **[Configuration & Architecture](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/configuration.md)** page.
 
 ## Contributing
 
@@ -230,6 +108,8 @@ Contributions are welcome! Please:
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+For more details, see the **[Contributing Guide](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/contributing.md)**.
 
 ## License
 
@@ -257,7 +137,7 @@ If you use SmileSherlock in your research, please cite:
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+See [CHANGELOG.md](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/CHANGELOG.md) for version history.
 
 ---
 
