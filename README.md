@@ -1,5 +1,9 @@
 # SmileSherlock
 
+<p align="center">
+  <img src="./docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="220" />
+</p>
+
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
