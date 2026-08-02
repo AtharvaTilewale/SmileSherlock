@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SmileSherlock"
-version = "0.1.0"
+version = "1.0.0"
 description = "A high-performance tool for SMILES validation, PubChem lookup, and chemical structure retrieval"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Atharva Tilewale", email = "tilewale.atharva@gmail.com"}
 ]
 keywords = ["cheminformatics", "SMILES", "PubChem", "chemistry", "RDKit"]
 classifiers = [

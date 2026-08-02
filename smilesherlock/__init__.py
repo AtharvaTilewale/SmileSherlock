@@ -9,7 +9,7 @@ A production-grade cheminformatics tool for:
 - Multiple export formats (CSV, Excel, JSON)
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "SmileSherlock Contributors"
 __license__ = "MIT"
 

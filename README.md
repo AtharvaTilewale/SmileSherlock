@@ -33,7 +33,7 @@ pip install smilesherlock
 Clone the repository and install in editable mode:
 
 ```bash
-git clone https://github.com/yourusername/SmileSherlock.git
+git clone https://github.com/AtharvaTilewale/SmileSherlock.git
 cd SmileSherlock
 pip install -e ".[dev]"
 ```
@@ -192,19 +192,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use SmileSherlock in your research, please cite:
 
 ```bibtex
-@software{smilesherlock2024,
+@software{smilesherlock2026,
+  author={Atharva Tilewale},
   title={SmileSherlock: High-performance SMILES validation and PubChem lookup},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/yourusername/SmileSherlock}
+  version={1.0.0},
+  year={2026},
+  url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
 ```
 
 ## Support
 
 - **Documentation**: [https://smilesherlock.readthedocs.io](https://smilesherlock.readthedocs.io)
-- **Issues**: [https://github.com/yourusername/SmileSherlock/issues](https://github.com/yourusername/SmileSherlock/issues)
-- **Discussions**: [https://github.com/yourusername/SmileSherlock/discussions](https://github.com/yourusername/SmileSherlock/discussions)
+- **Issues**: [https://github.com/AtharvaTilewale/SmileSherlock/issues](https://github.com/AtharvaTilewale/SmileSherlock/issues)
+- **Discussions**: [https://github.com/AtharvaTilewale/SmileSherlock/discussions](https://github.com/AtharvaTilewale/SmileSherlock/discussions)
 
 ## Changelog
 
