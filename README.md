@@ -1,362 +1,220 @@
 # SmileSherlock
 
 <p align="center">
-  <img src="./docs/assets/smilesherlock-logo.png" alt="SmileSherlock Logo" width="800" />
+  <img src="./docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="800" />
 </p>
 
-<p align="center">
-  <b>A high-performance, production-grade toolkit for SMILES validation, PubChem lookup, and chemical structure retrieval.</b>
-</p>
+A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
 
-<p align="center">
-  <a href="https://pypi.org/project/smilesherlock/"><img src="https://img.shields.io/pypi/v/smilesherlock.svg" alt="PyPI"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License"></a>
-</p>
-
----
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
-- ✅ **SMILES Validation & Canonicalization** using RDKit
-- ✅ **Multi-format Input** (CSV, TSV, TXT, XLSX, SMI, SDF)
-- ✅ **Automatic SMILES Column Detection**
-- ✅ **PubChem Lookup** by SMILES, CID, Name, InChI, and InChIKey
-- ✅ **Rich Metadata Retrieval**
-  - CID
-  - IUPAC Name
-  - Molecular Formula
-  - Molecular Weight
-  - Exact Mass
-  - InChI
-  - InChIKey
-  - Canonical & Isomeric SMILES
-  - Molecular Descriptors
-- ✅ **Structure Downloads**
-  - 2D / 3D SDF
-  - MOL
-  - PDB
-  - PNG
-- ✅ **Batch Processing**
-- ✅ **Multithreaded Downloads & Lookups**
-- ✅ **SQLite Caching**
-- ✅ **Detailed Log Files**
-- ✅ **CSV / Excel / JSON Export**
-- ✅ **Python API**
-- ✅ **Command Line Interface**
-- ✅ **Smart Updater & Reinstaller**
+- **SMILES Validation & Canonicalization** - Validate and standardize SMILES strings using RDKit
+- **Multi-format Input** - Support for CSV, TSV, XLSX, SMI, SDF, and TXT files
+- **Smart Auto-detection** - Automatically identify SMILES columns
+- **PubChem Lookup** - Search by SMILES, CID, Name, InChI, and InChIKey
+- **Rich Metadata** - Retrieve IUPAC name, molecular formula, mass, descriptors
+- **Structure Downloads** - Get 2D/3D SDF, MOL, PDB, and PNG formats
+- **Batch Processing** - Process hundreds of compounds with progress tracking
+- **Async/Multithreading** - Fast parallel downloads with retry logic
+- **Caching** - SQLite database for storing results locally
+- **Multiple Exports** - Save results as CSV, Excel, or JSON
+- **Python API** - Use directly in your scripts via `smilesherlock` module
+- **CLI Tool** - Full-featured command-line interface with `smilesherlock` command
 
----
+## Installation
 
-# Installation
-
-## Install from PyPI
+### From PyPI (coming soon)
 
 ```bash
 pip install smilesherlock
 ```
 
----
+### Development Installation
 
-## Development Installation
+Clone the repository and install in editable mode:
 
 ```bash
 git clone https://github.com/AtharvaTilewale/SmileSherlock.git
-
 cd SmileSherlock
-
 pip install -e ".[dev]"
 ```
 
----
+## Quick Start
 
-# Quick Start
-
-## Show Status
+### CLI Usage
 
 ```bash
+# Show configuration and status
 smilesherlock status
-```
 
-## Initialize Database & Directories
-
-```bash
+# Initialize directories and database
 smilesherlock init
+
+# Lookup a single compound
+smilesherlock lookup "c1ccccc1"  # Benzene
+smilesherlock lookup 5282253 --cid
+
+# Batch process a file
+smilesherlock batch compounds.csv --output results.xlsx --format xlsx
+
+# Download structure
+smilesherlock download 5282253 --format sdf --3d
 ```
 
-## Update
-
-```bash
-smilesherlock update
-```
-
-## Reinstall
-
-```bash
-smilesherlock reinstall
-```
-
----
-
-## Lookup Single Compound
-
-Using SMILES
-
-```bash
-smilesherlock lookup "c1ccccc1"
-```
-
-Using CID
-
-```bash
-smilesherlock lookup 241 --cid
-```
-
----
-
-## Batch Lookup
-
-```bash
-smilesherlock batch compounds.csv \
-    --output results.xlsx \
-    --format xlsx
-```
-
----
-
-## Download Structures
-
-Single Compound
-
-```bash
-smilesherlock download 241 \
-    --format sdf \
-    --3d
-```
-
-Batch Download
-
-```bash
-smilesherlock download \
-    -i compounds.csv \
-    --format pdb \
-    --2d
-```
-
----
-
-# Python API
+### Python API (coming in Phase 2)
 
 ```python
-from smilesherlock import (
-    lookup,
-    lookup_file,
-    download_structure,
-)
+from smilesherlock import lookup, lookup_file, download_structure
 
+# Lookup single compound
 result = lookup("c1ccccc1")
+print(result.cid, result.iupac_name)
 
-print(result.cid)
-print(result.iupac_name)
+# Process file
+results = lookup_file("compounds.csv", output_format="xlsx")
 
-lookup_file(
-    "compounds.csv",
-    output_format="xlsx",
-)
-
-download_structure(
-    cid=241,
-    format="sdf",
-    dimension="3d",
-)
+# Download structure
+download_structure(5282253, format="sdf", dimension="3d")
 ```
 
----
+## Requirements
 
-# Requirements
+- Python 3.10+
+- RDKit (cheminformatics library)
+- pandas (data handling)
+- requests/aiohttp (HTTP)
+- typer (CLI framework)
+- rich/tqdm (UI/progress)
 
-- Python ≥ 3.10
-- RDKit
-- pandas
-- requests
-- typer
-- rich
-- openpyxl
+## Configuration
 
----
-
-# Configuration
-
-Environment variables are supported.
+SmileSherlock respects environment variables for configuration:
 
 ```bash
 export SMILESHERLOCK_CACHE_DIR=/custom/cache
-
 export SMILESHERLOCK_LOG_LEVEL=DEBUG
-
 export SMILESHERLOCK_MAX_WORKERS=8
 ```
 
-Configuration priority:
-
-1. Environment variables
-2. `.env`
+Configuration is read from (in order):
+1. Environment variables (prefix: `SMILESHERLOCK_`)
+2. `.env` file in current directory
 3. Built-in defaults
 
----
+## Project Structure
 
-# Project Structure
-
-```text
+```
 SmileSherlock/
-│
-├── smilesherlock/
-│   ├── __init__.py
-│   ├── cli.py
-│   ├── config.py
-│   ├── logging_config.py
-│   │
+├── smilesherlock/          # Main package
+│   ├── __init__.py         # Public API
+│   ├── config.py           # Configuration management
+│   ├── logging_config.py   # Logging setup
+│   ├── cli.py              # CLI entry point
 │   ├── cli/
 │   │   ├── __init__.py
-│   │   └── main.py
-│   │
-│   ├── core/
-│   │   ├── smiles.py
-│   │   ├── pubchem.py
-│   │   └── database.py
-│   │
-│   └── utils/
-│       ├── file_io.py
-│       ├── export.py
-│       └── parsers.py
-│
-├── docs/
-├── tests/
-├── pyproject.toml
-├── README.md
-└── LICENSE
+│   │   └── main.py         # Typer CLI application
+│   ├── core/               # Core functionality (Phase 2)
+│   │   ├── smiles.py       # SMILES validation
+│   │   ├── pubchem.py      # PubChem API
+│   │   └── database.py     # SQLite caching
+│   └── utils/              # Utilities (Phase 2)
+│       ├── file_io.py      # File parsing
+│       ├── export.py       # Export formats
+│       └── parsers.py      # Input parsers
+├── tests/                  # Test suite
+├── docs/                   # Documentation
+├── pyproject.toml          # Package metadata & dependencies
+├── README.md               # This file
+└── LICENSE                 # MIT License
 ```
 
----
+## Development Roadmap
 
-# Roadmap
+### Phase 1: ✅ Project Structure & CLI Foundation
+- [x] Modern `pyproject.toml` with all dependencies
+- [x] Configuration management with `pydantic`
+- [x] Logging setup with file rotation
+- [x] CLI framework with `typer` and `rich`
+- [x] Command placeholders for future features
+- [x] Installable package (`pip install -e .`)
 
-## Phase 1 — Foundation
+### Phase 2: PubChem Lookup & SMILES Validation
+- [ ] RDKit SMILES validation and canonicalization
+- [ ] PubChem REST API client (sync + async)
+- [ ] SQLite database schema and caching
+- [ ] Single compound lookup commands
+- [ ] Metadata retrieval (IUPAC, formula, MW, descriptors)
+- [ ] Unit and integration tests
 
-- [x] Project structure
-- [x] CLI
-- [x] Configuration
-- [x] Logging
-- [x] Installable package
+### Phase 3: Batch Processing & File I/O
+- [ ] Multi-format input parsing (CSV, TSV, XLSX, SMI, SDF)
+- [ ] Auto-detection of SMILES column
+- [ ] Batch lookup with progress bars
+- [ ] Export to CSV, Excel, JSON
+- [ ] Duplicate detection and removal
 
----
+### Phase 4: Structure Downloads
+- [ ] Download 2D/3D structures
+- [ ] Support multiple formats (SDF, MOL, PDB, PNG)
+- [ ] Resume incomplete downloads
+- [ ] Batch structure downloads
 
-## Phase 2 — Core Lookup
+### Phase 5: Advanced Features
+- [ ] Async downloads and multithreading
+- [ ] Retry logic and rate limiting
+- [ ] Python API functions
+- [ ] Advanced caching strategies
+- [ ] Performance benchmarks
 
-- [x] RDKit validation
-- [x] PubChem API
-- [x] SQLite cache
-- [x] Metadata retrieval
-- [x] Unit tests
+### Phase 6: Testing & Deployment
+- [ ] Comprehensive unit tests
+- [ ] Integration tests with live PubChem
+- [ ] GitHub Actions CI/CD
+- [ ] Code coverage reports
+- [ ] PyPI release automation
+- [ ] Complete documentation
 
----
+## Contributing
 
-## Phase 3 — Batch Processing
+Contributions are welcome! Please:
 
-- [x] CSV / TSV / XLSX / SDF parsing
-- [x] Automatic SMILES detection
-- [x] Batch lookup
-- [x] Export formats
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
----
+## License
 
-## Phase 4 — Structure Downloads
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- [x] 2D & 3D structures
-- [x] SDF
-- [x] MOL
-- [x] PDB
-- [x] PNG
-- [x] Resume downloads
+## Citation
 
----
-
-## Phase 5 — Advanced Features
-
-- [x] Multithreading
-- [x] Retry logic
-- [x] Python API
-- [x] Advanced caching
-- [x] Auto updater
-- [x] Reinstaller
-
----
-
-## Phase 6 — Release
-
-- [ ] Full test coverage
-- [ ] Integration tests
-- [ ] GitHub Actions
-- [ ] Code coverage
-- [ ] PyPI release
-- [ ] Documentation
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-```bash
-git checkout -b feature/my-feature
-
-git commit -m "Add new feature"
-
-git push origin feature/my-feature
-```
-
-Then open a Pull Request.
-
----
-
-# Citation
-
-If you use **SmileSherlock** in your research, please cite:
+If you use SmileSherlock in your research, please cite:
 
 ```bibtex
 @software{smilesherlock2026,
-  author  = {Atharva Tilewale},
-  title   = {SmileSherlock: High-Performance SMILES Validation and PubChem Lookup},
-  version = {1.0.0},
-  year    = {2026},
-  url     = {https://github.com/AtharvaTilewale/SmileSherlock}
+  author={Atharva Tilewale},
+  title={SmileSherlock: High-performance SMILES validation and PubChem lookup},
+  version={1.0.0},
+  year={2026},
+  url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
 ```
 
----
+## Support
 
-# License
+- **Documentation**: [https://smilesherlock.readthedocs.io](https://smilesherlock.readthedocs.io)
+- **Issues**: [https://github.com/AtharvaTilewale/SmileSherlock/issues](https://github.com/AtharvaTilewale/SmileSherlock/issues)
+- **Discussions**: [https://github.com/AtharvaTilewale/SmileSherlock/discussions](https://github.com/AtharvaTilewale/SmileSherlock/discussions)
 
-Released under the MIT License.
+## Changelog
 
-See the **LICENSE** file.
-
----
-
-# Support
-
-- 📖 Documentation *(Coming Soon)*
-- 🐛 Issues: https://github.com/AtharvaTilewale/SmileSherlock/issues
-- 💬 Discussions: https://github.com/AtharvaTilewale/SmileSherlock/discussions
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
-# Changelog
-
-See **CHANGELOG.md**.
-
----
-
-<p align="center">
-Made with ❤️ for the cheminformatics community.
-</p>
+Made with ❤️ for the cheminformatics community
