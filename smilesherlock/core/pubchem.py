@@ -1,4 +1,4 @@
-"""PubChem REST API client for compound property lookup."""
+"""PubChem REST API client for compound property lookup and structure downloads."""
 
 import os
 import time
@@ -10,10 +10,15 @@ from pydantic import BaseModel, Field
 from smilesherlock.config import settings
 from smilesherlock.logging_config import logger
 
+try:
+    from rdkit import Chem
+    RDKIT_AVAILABLE = True
+except ImportError:
+    RDKIT_AVAILABLE = False
+
 
 class PubChemCompound(BaseModel):
     """Pydantic model representing PubChem compound metadata."""
-
     cid: Optional[int] = Field(None, description="PubChem Compound ID")
     input_query: Optional[str] = Field(None, description="Original query string")
     smiles: Optional[str] = Field(None, description="SMILES string")
@@ -33,7 +38,6 @@ class PubChemCompound(BaseModel):
 class PubChemClient:
     """Client for interacting with the PubChem PUG REST API."""
 
-    # FIX: Removed 'CID' from PROPERTIES. Requesting it explicitly causes a 400 Bad Request.
     PROPERTIES = [
         "IUPACName",
         "MolecularFormula",
@@ -104,7 +108,6 @@ class PubChemClient:
             else:
                 search_type = "name"
 
-        # FIX: Using GET with urllib.parse.quote as per your working snippet
         encoded_query = urllib.parse.quote(query_str)
         prop_list = ",".join(self.PROPERTIES)
         
@@ -117,7 +120,7 @@ class PubChemClient:
         props = json_data["PropertyTable"]["Properties"][0]
 
         return PubChemCompound(
-            cid=props.get("CID"),  # CID is safely extracted here even though it wasn't in the URL properties
+            cid=props.get("CID"),
             input_query=query_str,
             smiles=props.get("CanonicalSMILES"),
             canonical_smiles=props.get("CanonicalSMILES"),
@@ -133,24 +136,62 @@ class PubChemClient:
             hbond_acceptor_count=int(props["HBondAcceptorCount"]) if props.get("HBondAcceptorCount") is not None else None,
         )
 
-    def download_3d_sdf(self, cid: int, output_dir: str = '3D_structures') -> str:
+    def download_structure(self, cid: int, format: str = "sdf", dimension: str = "3d", output_dir: str = "structures", force: bool = False) -> str:
         """
-        Download 3D SDF structure from PubChem for given CID.
-        Implemented based on the provided working snippet.
+        Download 2D/3D structure from PubChem.
+        Supports SDF, MOL, PDB, and PNG formats.
         """
         try:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-            
-            url = f"{self.base_url}/compound/cid/{cid}/record/SDF/?record_type=3d"
-            
+
+            fmt = format.lower().strip()
+            dim = dimension.lower().strip()
+            output_file = os.path.join(output_dir, f"{cid}_{dim}.{fmt}")
+
+            # Resume logic: skip if file exists and has content
+            if not force and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                return 'Skipped (Already exists)'
+
             time.sleep(self.rate_limit_delay)
-            response = requests.get(url, timeout=self.timeout)
-            
+
+            if fmt == "png":
+                url = f"{self.base_url}/compound/cid/{cid}/PNG?record_type={dim}&image_size=large"
+                response = requests.get(url, timeout=self.timeout)
+            else:
+                # Always fetch SDF first for standard structure formats
+                url = f"{self.base_url}/compound/cid/{cid}/record/SDF/?record_type={dim}"
+                response = requests.get(url, timeout=self.timeout)
+
             if response.status_code == 200:
-                output_file = os.path.join(output_dir, f"{cid}.sdf")
-                with open(output_file, 'w') as f:
-                    f.write(response.text)
+                if fmt in ["sdf", "png"]:
+                    # Save natively supported formats directly
+                    with open(output_file, 'wb') as f:
+                        f.write(response.content)
+                elif fmt in ["mol", "pdb"]:
+                    # Require RDKit for MOL/PDB conversion
+                    if not RDKIT_AVAILABLE:
+                        return "Error: RDKit is required for MOL or PDB conversion"
+                    
+                    temp_sdf = os.path.join(output_dir, f"temp_{cid}.sdf")
+                    with open(temp_sdf, 'wb') as f:
+                        f.write(response.content)
+                    
+                    supplier = Chem.SDMolSupplier(temp_sdf)
+                    mol = next(supplier)
+                    if mol is None:
+                        os.remove(temp_sdf)
+                        return "Error: Invalid SDF retrieved from PubChem"
+                    
+                    if fmt == "mol":
+                        Chem.MolToMolFile(mol, output_file)
+                    elif fmt == "pdb":
+                        Chem.MolToPDBFile(mol, output_file)
+                        
+                    os.remove(temp_sdf)
+                else:
+                    return f"Error: Unsupported format '{fmt}'"
+
                 return 'Downloaded'
             elif response.status_code == 404:
                 return 'Not Available'

@@ -230,30 +230,87 @@ def batch(
 
 @app.command()
 def download(
-    cid: int = typer.Argument(..., help="PubChem CID"),
+    cid: Optional[int] = typer.Argument(None, help="PubChem CID to download"),
+    input_file: Optional[Path] = typer.Option(None, "--file", "-i", help="Batch download from file (CSVs, SMI, etc.)"),
     format: str = typer.Option("sdf", "--format", "-f", help="Structure format (sdf, mol, pdb, png)"),
     dimension: str = typer.Option("3d", "--3d/--2d", help="2D or 3D structure"),
+    output_dir: Path = typer.Option(Path("structures"), "--output-dir", "-o", help="Output directory"),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing files (disables resume)"),
 ) -> None:
-    """Download a chemical structure from PubChem."""
-    
-    if format.lower() == "sdf" and dimension.lower() == "3d":
-        from smilesherlock.core.pubchem import PubChemClient
-        
-        with console.status(f"[bold green]Downloading 3D SDF for CID {cid}...[/bold green]"):
-            client = PubChemClient()
-            status = client.download_3d_sdf(cid=cid, output_dir="3D_structures")
-            
+    """Download chemical structures from PubChem (Single or Batch)."""
+    if not cid and not input_file:
+        console.print("[red]✖ You must provide either a CID or an --file input.[/red]")
+        raise typer.Exit(code=1)
+
+    from smilesherlock import download_structure, lookup
+    from smilesherlock.utils.parsers import parse_compounds_file
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+
+    out_dir_str = str(output_dir)
+
+    # 1. Single CID Download
+    if cid:
+        with console.status(f"[bold green]Downloading {dimension.upper()} {format.upper()} for CID {cid}...[/bold green]"):
+            status = download_structure(cid, format, dimension, out_dir_str, force)
             if status == "Downloaded":
-                console.print(f"[green]✔[/green] Successfully downloaded 3D SDF to 3D_structures/{cid}.sdf")
+                console.print(f"[green]✔[/green] Successfully downloaded to {output_dir}/{cid}_{dimension.lower()}.{format.lower()}")
+            elif "Skipped" in status:
+                console.print(f"[blue]ℹ[/blue] {status}")
             else:
                 console.print(f"[red]✖[/red] Failed to download: {status}")
-    else:
-        console.print(
-            Panel(
-                f"[bold yellow]Only 3D SDF download is currently implemented.[/bold yellow]",
-                expand=False,
-            )
-        )
+    
+    # 2. Batch Download from File
+    if input_file:
+        if not input_file.exists():
+            console.print(f"[red]✖ Input file not found: {input_file}[/red]")
+            raise typer.Exit(code=1)
+        
+        queries = parse_compounds_file(input_file)
+        queries = list(dict.fromkeys(queries))  # Remove duplicates
+        
+        console.print(f"[blue]ℹ[/blue] Batch downloading structures for {len(queries)} unique compounds...")
+        
+        success = 0
+        skipped = 0
+        failed = 0
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("[cyan]Processing downloads...", total=len(queries))
+            
+            for query in queries:
+                # Ensure we have a CID (translating SMILES on the fly if needed)
+                target_cid = None
+                if str(query).isdigit():
+                    target_cid = int(query)
+                else:
+                    compound = lookup(query, use_cache=True)
+                    if compound and compound.cid:
+                        target_cid = compound.cid
+                
+                if target_cid:
+                    status = download_structure(target_cid, format, dimension, out_dir_str, force)
+                    if status == "Downloaded":
+                        success += 1
+                    elif "Skipped" in status:
+                        skipped += 1
+                    else:
+                        failed += 1
+                else:
+                    failed += 1
+                    
+                progress.advance(task)
+                
+        console.print(f"\n[green]✔[/green] Batch download complete!")
+        console.print(f"  • Downloaded: [green]{success}[/green]")
+        console.print(f"  • Skipped (Already exist): [blue]{skipped}[/blue]")
+        console.print(f"  • Failed/Not Found: [red]{failed}[/red]")
+        console.print(f"  • Saved in: [cyan]{output_dir}[/cyan]")
 
 
 if __name__ == "__main__":

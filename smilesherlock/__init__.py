@@ -48,9 +48,7 @@ def lookup_file(
     output_format: str = "csv",
     remove_duplicates: bool = True,
 ) -> List[PubChemCompound]:
-    """
-    Process a batch file of SMILES/CIDs and export the results.
-    """
+    """Process a batch file of SMILES/CIDs and export the results."""
     input_path = Path(input_file)
     queries = parse_compounds_file(input_path)
     
@@ -69,9 +67,34 @@ def lookup_file(
     return results
 
 
+def download_structure(
+    cid: int,
+    format: str = "sdf",
+    dimension: str = "3d",
+    output_dir: str = "structures",
+    force: bool = False,
+) -> str:
+    """
+    Download a chemical structure from PubChem.
+    
+    Args:
+        cid: PubChem Compound ID.
+        format: Output format ('sdf', 'mol', 'pdb', 'png').
+        dimension: '2d' or '3d'.
+        output_dir: Destination folder path.
+        force: Overwrite existing files (bypasses resume).
+        
+    Returns:
+        Status message string.
+    """
+    client = PubChemClient()
+    return client.download_structure(cid, format, dimension, output_dir, force)
+
+
 __all__ = [
     "lookup",
     "lookup_file",
+    "download_structure",
     "validate_smiles",
     "SMILESValidationResult",
     "PubChemClient",
