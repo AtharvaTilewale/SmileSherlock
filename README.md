@@ -1,7 +1,7 @@
 # SmileSherlock
 
 <p align="center">
-  <img src="./docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="220" />
+  <img src="./docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="700" />
 </p>
 
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
