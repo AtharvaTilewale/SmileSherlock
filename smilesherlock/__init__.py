@@ -1,10 +1,13 @@
 """SmileSherlock: High-performance SMILES validation and PubChem lookup."""
 
-from typing import Optional, Union
+from pathlib import Path
+from typing import Optional, Union, List
 
 from smilesherlock.core.database import DatabaseManager
 from smilesherlock.core.pubchem import PubChemClient, PubChemCompound
 from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles
+from smilesherlock.utils.parsers import parse_compounds_file
+from smilesherlock.utils.export import export_results
 
 __version__ = "1.0.0"
 __author__ = "Atharva Tilewale"
@@ -16,17 +19,7 @@ def lookup(
     search_type: str = "auto",
     use_cache: bool = True,
 ) -> Optional[PubChemCompound]:
-    """
-    Lookup chemical compound information from PubChem with local caching.
-
-    Args:
-        query: SMILES string, PubChem CID, Name, InChI, or InChIKey.
-        search_type: 'auto', 'smiles', 'cid', 'name', 'inchi', 'inchikey'.
-        use_cache: Whether to use local SQLite database caching.
-
-    Returns:
-        PubChemCompound model instance or None.
-    """
+    """Lookup chemical compound information from PubChem with local caching."""
     query_str = str(query).strip()
     db = DatabaseManager()
 
@@ -49,8 +42,36 @@ def lookup(
     return compound
 
 
+def lookup_file(
+    input_file: Union[str, Path],
+    output_file: Optional[Union[str, Path]] = None,
+    output_format: str = "csv",
+    remove_duplicates: bool = True,
+) -> List[PubChemCompound]:
+    """
+    Process a batch file of SMILES/CIDs and export the results.
+    """
+    input_path = Path(input_file)
+    queries = parse_compounds_file(input_path)
+    
+    if remove_duplicates:
+        queries = list(dict.fromkeys(queries))
+        
+    results = []
+    for query in queries:
+        compound = lookup(query)
+        if compound:
+            results.append(compound)
+            
+    if output_file:
+        export_results(results, Path(output_file), output_format)
+        
+    return results
+
+
 __all__ = [
     "lookup",
+    "lookup_file",
     "validate_smiles",
     "SMILESValidationResult",
     "PubChemClient",

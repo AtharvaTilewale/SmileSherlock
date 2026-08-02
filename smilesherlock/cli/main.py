@@ -149,19 +149,83 @@ def lookup_cmd(
 app.command(name="lookup")(lookup_cmd)
 
 
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from smilesherlock.utils.parsers import parse_compounds_file
+from smilesherlock.utils.export import export_results
+
 @app.command()
 def batch(
-    input_file: Path = typer.Argument(..., help="Input file (CSV, TSV, XLSX, SMI, SDF)"),
-    output_file: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file path"),
+    input_file: Path = typer.Argument(
+        ...,
+        help="Input file (CSV, TSV, XLSX, SMI, SDF)",
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path",
+    ),
     format: str = typer.Option("csv", "--format", "-f", help="Output format (csv, xlsx, json)"),
+    keep_duplicates: bool = typer.Option(False, "--keep-duplicates", help="Do not remove duplicate entries"),
 ) -> None:
-    """Process a batch of SMILES from file."""
-    console.print(
-        Panel(
-            "[bold yellow]Feature coming in Phase 3[/bold yellow]\nBatch processing with file I/O",
-            expand=False,
-        )
-    )
+    """
+    Process a batch of SMILES from a file and retrieve metadata.
+    """
+    if not input_file.exists():
+        console.print(f"[red]✖ Input file not found: {input_file}[/red]")
+        raise typer.Exit(code=1)
+
+    # Determine default output if not provided
+    if not output_file:
+        output_file = input_file.with_name(f"{input_file.stem}_results.{format}")
+
+    try:
+        queries = parse_compounds_file(input_file)
+        original_count = len(queries)
+        
+        if not keep_duplicates:
+            # Preserve order while removing duplicates
+            queries = list(dict.fromkeys(queries))
+            
+        console.print(f"[blue]ℹ[/blue] Loaded {original_count} compounds ({len(queries)} unique).")
+    except Exception as e:
+        console.print(f"[red]✖ Failed to parse input file: {e}[/red]")
+        raise typer.Exit(code=1)
+
+    results = []
+    found_count = 0
+
+    # Rich progress bar
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Looking up compounds...", total=len(queries))
+
+        for query in queries:
+            # We call the lookup function we updated in Phase 2
+            compound = lookup(query, use_cache=True)
+            if compound:
+                results.append(compound)
+                found_count += 1
+            else:
+                # If not found, append a blank record with the input query so it isn't lost
+                from smilesherlock.core.pubchem import PubChemCompound
+                results.append(PubChemCompound(input_query=query))
+                
+            progress.advance(task)
+
+    try:
+        export_results(results, output_file, format)
+        console.print(f"\n[green]✔[/green] Batch processing complete!")
+        console.print(f"  • Found: [green]{found_count}[/green]")
+        console.print(f"  • Missed: [red]{len(queries) - found_count}[/red]")
+        console.print(f"  • Results saved to: [cyan]{output_file}[/cyan]")
+    except Exception as e:
+        console.print(f"[red]✖ Failed to export results: {e}[/red]")
 
 
 @app.command()
