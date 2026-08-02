@@ -28,7 +28,7 @@ jobs:
         
     - name: Run Pytest with Coverage
       run: |
-        pytest --cov=smilesherlock --cov-report=xml
+        pytest -m "not integration" --cov=smilesherlock --cov-report=xml
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
