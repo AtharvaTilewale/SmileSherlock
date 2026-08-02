@@ -131,52 +131,6 @@ SmileSherlock/
 └── LICENSE                 # MIT License
 ```
 
-## Development Roadmap
-
-### Phase 1: ✅ Project Structure & CLI Foundation
-- [x] Modern `pyproject.toml` with all dependencies
-- [x] Configuration management with `pydantic`
-- [x] Logging setup with file rotation
-- [x] CLI framework with `typer` and `rich`
-- [x] Command placeholders for future features
-- [x] Installable package (`pip install -e .`)
-
-### Phase 2: PubChem Lookup & SMILES Validation
-- [ ] RDKit SMILES validation and canonicalization
-- [ ] PubChem REST API client (sync + async)
-- [ ] SQLite database schema and caching
-- [ ] Single compound lookup commands
-- [ ] Metadata retrieval (IUPAC, formula, MW, descriptors)
-- [ ] Unit and integration tests
-
-### Phase 3: Batch Processing & File I/O
-- [ ] Multi-format input parsing (CSV, TSV, XLSX, SMI, SDF)
-- [ ] Auto-detection of SMILES column
-- [ ] Batch lookup with progress bars
-- [ ] Export to CSV, Excel, JSON
-- [ ] Duplicate detection and removal
-
-### Phase 4: Structure Downloads
-- [ ] Download 2D/3D structures
-- [ ] Support multiple formats (SDF, MOL, PDB, PNG)
-- [ ] Resume incomplete downloads
-- [ ] Batch structure downloads
-
-### Phase 5: Advanced Features
-- [ ] Async downloads and multithreading
-- [ ] Retry logic and rate limiting
-- [ ] Python API functions
-- [ ] Advanced caching strategies
-- [ ] Performance benchmarks
-
-### Phase 6: Testing & Deployment
-- [ ] Comprehensive unit tests
-- [ ] Integration tests with live PubChem
-- [ ] GitHub Actions CI/CD
-- [ ] Code coverage reports
-- [ ] PyPI release automation
-- [ ] Complete documentation
-
 ## Contributing
 
 Contributions are welcome! Please:
