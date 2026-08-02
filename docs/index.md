@@ -26,7 +26,7 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 
 ## Installation
 
-### From PyPI 
+### From PyPI
 
 ```bash
 pip install smilesherlock
