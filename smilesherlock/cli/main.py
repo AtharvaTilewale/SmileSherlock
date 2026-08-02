@@ -265,11 +265,6 @@ def lookup_cmd(
     """
     search_type = "cid" if cid else "auto"
 
-    if not cid and not query.isdigit():
-        validation = validate_smiles(query)
-        if not validation.is_valid and validation.error_message:
-            console.print(f"[yellow]Note: SMILES parse warning: {validation.error_message}[/yellow]")
-
     with console.status(f"[bold green]Searching PubChem for '{query}'...[/bold green]"):
         result = lookup(query, search_type=search_type, use_cache=not no_cache)
 

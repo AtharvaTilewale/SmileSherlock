@@ -6,10 +6,12 @@ from pydantic import BaseModel, Field
 try:
     from rdkit import Chem
     from rdkit.Chem import Descriptors, rdMolDescriptors
+    from rdkit import RDLogger
     RDKIT_AVAILABLE = True
 except ImportError:
     RDKIT_AVAILABLE = False
 
+RDLogger.DisableLog('rdApp.*') 
 
 class SMILESValidationResult(BaseModel):
     """Result model for SMILES validation and property extraction."""

@@ -29,7 +29,6 @@ class DatabaseManager:
         """Initialize SQLite database schema."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            # ... (Rest of the schema creation remains exactly the same) ...
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS compound_cache (
@@ -91,7 +90,7 @@ class DatabaseManager:
                     (
                         query_key.lower().strip(),
                         compound.cid,
-                        compound.smiles,
+                        compound.isomeric_smiles,  # <-- FIXED: Using isomeric_smiles instead of the missing .smiles attribute
                         compound.canonical_smiles,
                         compound.iupac_name,
                         compound.molecular_formula,
