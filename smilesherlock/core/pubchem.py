@@ -1,215 +1,224 @@
-"""PubChem REST API client for compound property lookup and structure downloads."""
+"""PubChem PUG REST API client for SmileSherlock."""
 
-import os
 import time
 import threading
 import urllib.parse
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Dict, Any, Union
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from pydantic import BaseModel, Field
 
-from smilesherlock.config import settings
 from smilesherlock.logging_config import logger
+from smilesherlock.config import settings
 
-try:
-    from rdkit import Chem
-    RDKIT_AVAILABLE = True
-except ImportError:
-    RDKIT_AVAILABLE = False
-
-
-class RateLimiter:
-    """Thread-safe rate limiter to respect PubChem API constraints."""
-    def __init__(self, delay: float):
-        self.delay = delay
-        self.lock = threading.Lock()
-        self.last_call = 0.0
-
-    def wait(self) -> None:
-        with self.lock:
-            now = time.time()
-            elapsed = now - self.last_call
-            if elapsed < self.delay:
-                time.sleep(self.delay - elapsed)
-            self.last_call = time.time()
-
-# Global rate limiter shared across all threads
-api_limiter = RateLimiter(settings.rate_limit_delay)
-
+# -------------------------------------------------------------------------
+# Data Models
+# -------------------------------------------------------------------------
 
 class PubChemCompound(BaseModel):
-    """Pydantic model representing PubChem compound metadata."""
-    cid: Optional[int] = Field(None, description="PubChem Compound ID")
-    input_query: Optional[str] = Field(None, description="Original query string")
-    smiles: Optional[str] = Field(None, description="SMILES string")
-    canonical_smiles: Optional[str] = Field(None, description="Canonical SMILES")
-    iupac_name: Optional[str] = Field(None, description="IUPAC Name")
-    molecular_formula: Optional[str] = Field(None, description="Molecular Formula")
-    molecular_weight: Optional[float] = Field(None, description="Molecular Weight (g/mol)")
-    inchi: Optional[str] = Field(None, description="InChI string")
-    inchikey: Optional[str] = Field(None, description="InChIKey")
-    xlogp: Optional[float] = Field(None, description="XLogP calculated value")
-    exact_mass: Optional[float] = Field(None, description="Exact Mass")
-    charge: Optional[int] = Field(None, description="Formal Charge")
-    hbond_donor_count: Optional[int] = Field(None, description="H-Bond Donor Count")
-    hbond_acceptor_count: Optional[int] = Field(None, description="H-Bond Acceptor Count")
+    """Data model representing a fetched compound's metadata."""
+    input_query: str = Field(description="The original query string used to find this compound")
+    cid: Optional[int] = None
+    title: Optional[str] = None
+    iupac_name: Optional[str] = None
+    molecular_formula: Optional[str] = None
+    molecular_weight: Optional[float] = None
+    canonical_smiles: Optional[str] = None
+    isomeric_smiles: Optional[str] = None
+    inchikey: Optional[str] = None
+    inchi: Optional[str] = None
+    xlogp: Optional[float] = None
+    hbond_donor_count: Optional[int] = None
+    hbond_acceptor_count: Optional[int] = None
 
+# -------------------------------------------------------------------------
+# PubChem API Client
+# -------------------------------------------------------------------------
 
 class PubChemClient:
-    """Client for interacting with the PubChem PUG REST API."""
+    """
+    Client for interacting with the PubChem PUG REST API.
+    Includes thread-safe rate limiting and connection retries.
+    """
+    
+    # PubChem allows max 5 requests per second. 
+    # We use a thread lock to ensure batch multithreading respects this limit.
+    _rate_limit_lock = threading.Lock()
+    _last_request_time = 0.0
+    _MIN_REQUEST_INTERVAL = 0.22  # slightly over 200ms to be safe
 
-    PROPERTIES = [
-        "IUPACName",
-        "MolecularFormula",
-        "MolecularWeight",
-        "CanonicalSMILES",
-        "InChI",
-        "InChIKey",
-        "XLogP",
-        "ExactMass",
-        "Charge",
-        "HBondDonorCount",
-        "HBondAcceptorCount",
-    ]
-
-    def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):
-        self.base_url = (base_url or settings.pubchem_base_url).rstrip("/")
-        self.timeout = timeout or settings.pubchem_timeout
-        self.retries = settings.pubchem_retries
-
-    def _make_request(
-        self, url: str, method: str = "GET", data: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
-        """Execute HTTP request with strict thread-safe rate limiting and exponential backoff."""
+    def __init__(self):
+        self.base_url = settings.pubchem_base_url.rstrip("/")
         
-        for attempt in range(1, self.retries + 1):
-            api_limiter.wait()  # Thread-safe wait
+        # Define properties we want to fetch for every compound
+        self.properties = (
+            "Title,MolecularFormula,MolecularWeight,CanonicalSMILES,"
+            "IsomericSMILES,InChI,InChIKey,IUPACName,XLogP,"
+            "HBondDonorCount,HBondAcceptorCount"
+        )
+        
+        # Setup robust session with Retry logic for transient server errors (500, 502, 503, 504)
+        self.session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=1,  # 1s, 2s, 4s delays between retries
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
+    def _enforce_rate_limit(self):
+        """Thread-safe rate limiter to prevent API blocks."""
+        with self._rate_limit_lock:
+            current_time = time.time()
+            elapsed = current_time - self.__class__._last_request_time
+            if elapsed < self._MIN_REQUEST_INTERVAL:
+                time.sleep(self._MIN_REQUEST_INTERVAL - elapsed)
+            self.__class__._last_request_time = time.time()
+
+    def _make_request(self, url: str) -> Optional[Dict[str, Any]]:
+        """Execute the HTTP GET request with rate limiting and error handling."""
+        self._enforce_rate_limit()
+        
+        try:
+            logger.debug(f"Requesting PubChem URL: {url}")
+            response = self.session.get(url, timeout=10)
             
-            try:
-                if method.upper() == "POST":
-                    response = requests.post(url, data=data, timeout=self.timeout)
-                else:
-                    response = requests.get(url, timeout=self.timeout)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 404:
+                logger.debug(f"PubChem returned 404 Not Found for URL: {url}")
+                return None
+            else:
+                logger.warning(f"PubChem API error {response.status_code}: {response.text}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error querying PubChem: {e}")
+            return None
 
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 404:
-                    logger.debug(f"PubChem resource not found: {url}")
-                    return None
-                elif response.status_code == 503:
-                    # PubChem is telling us to slow down explicitly
-                    logger.warning("PubChem 503 Server Busy. Extending backoff.")
-                    time.sleep(attempt * 2.0)
-                else:
-                    logger.warning(f"PubChem API status {response.status_code} (attempt {attempt}/{self.retries})")
-            except requests.RequestException as e:
-                logger.error(f"HTTP Request failed (attempt {attempt}/{self.retries}): {e}")
+    def _parse_response(self, data: Dict[str, Any], input_query: str) -> Optional[PubChemCompound]:
+        """Safely parse the PubChem JSON response into a Pydantic model."""
+        try:
+            properties = data.get("PropertyTable", {}).get("Properties", [])
+            if not properties:
+                return None
+                
+            # Usually we only care about the first (best) match returned
+            prop = properties[0]
+            
+            return PubChemCompound(
+                input_query=str(input_query),
+                cid=prop.get("CID"),
+                title=prop.get("Title"),
+                iupac_name=prop.get("IUPACName"),
+                molecular_formula=prop.get("MolecularFormula"),
+                molecular_weight=prop.get("MolecularWeight"),
+                canonical_smiles=prop.get("CanonicalSMILES"),
+                isomeric_smiles=prop.get("IsomericSMILES"),
+                inchikey=prop.get("InChIKey"),
+                inchi=prop.get("InChI"),
+                xlogp=prop.get("XLogP"),
+                hbond_donor_count=prop.get("HBondDonorCount"),
+                hbond_acceptor_count=prop.get("HBondAcceptorCount")
+            )
+        except Exception as e:
+            logger.error(f"Failed to parse PubChem response for {input_query}: {e}")
+            return None
 
-            if attempt < self.retries:
-                time.sleep(attempt * 1.0)
+    # -------------------------------------------------------------------------
+    # Specific Lookup Methods
+    # -------------------------------------------------------------------------
 
+    def lookup_by_cid(self, cid: Union[int, str]) -> Optional[PubChemCompound]:
+        """Lookup compound by PubChem CID."""
+        url = f"{self.base_url}/compound/cid/{cid}/property/{self.properties}/JSON"
+        data = self._make_request(url)
+        if data:
+            return self._parse_response(data, input_query=str(cid))
         return None
 
-    def lookup(self, query: Union[str, int], search_type: str = "auto") -> Optional[PubChemCompound]:
-        """Lookup compound metadata from PubChem."""
-        query_str = str(query).strip()
-        if not query_str:
-            return None
+    def lookup_by_smiles(self, smiles: str) -> Optional[PubChemCompound]:
+        """Lookup compound by SMILES string."""
+        encoded_smiles = urllib.parse.quote(smiles)
+        url = f"{self.base_url}/compound/smiles/{encoded_smiles}/property/{self.properties}/JSON"
+        data = self._make_request(url)
+        if data:
+            return self._parse_response(data, input_query=smiles)
+        return None
 
-        if search_type == "auto":
-            if query_str.isdigit():
-                search_type = "cid"
-            elif query_str.startswith("InChI="):
-                search_type = "inchi"
-            elif len(query_str) == 27 and query_str[14] == "-" and query_str[25] == "-":
-                search_type = "inchikey"
-            elif any(c in query_str for c in ["=", "#", "(", ")", "[", "]", "c", "C", "n", "N"]):
-                search_type = "smiles"
-            else:
-                search_type = "name"
+    def lookup_by_name(self, name: str) -> Optional[PubChemCompound]:
+        """Lookup compound by common or IUPAC name."""
+        encoded_name = urllib.parse.quote(name)
+        url = f"{self.base_url}/compound/name/{encoded_name}/property/{self.properties}/JSON"
+        data = self._make_request(url)
+        if data:
+            return self._parse_response(data, input_query=name)
+        return None
 
-        encoded_query = urllib.parse.quote(query_str)
-        prop_list = ",".join(self.PROPERTIES)
+    def lookup_by_inchikey(self, inchikey: str) -> Optional[PubChemCompound]:
+        """Lookup compound by InChIKey."""
+        url = f"{self.base_url}/compound/inchikey/{inchikey}/property/{self.properties}/JSON"
+        data = self._make_request(url)
+        if data:
+            return self._parse_response(data, input_query=inchikey)
+        return None
+
+    # -------------------------------------------------------------------------
+    # Main Router
+    # -------------------------------------------------------------------------
+
+    def lookup(self, query: str, search_type: str = "auto") -> Optional[PubChemCompound]:
+        """
+        Main router method. Automatically detects input type or uses specified type.
         
-        url = f"{self.base_url}/compound/{search_type}/{encoded_query}/property/{prop_list}/JSON"
-        json_data = self._make_request(url, method="GET")
+        Args:
+            query: The string or number to search for.
+            search_type: "auto", "cid", "smiles", "name", or "inchikey".
+            
+        Returns:
+            PubChemCompound if found, else None.
+        """
+        query_str = str(query).strip()
+        search_type = search_type.lower()
+        
+        logger.debug(f"Executing PubChem lookup for '{query_str}' (type: {search_type})")
 
-        if not json_data or "PropertyTable" not in json_data:
-            return None
+        # 1. Explicit CID or all digits in auto mode
+        if search_type == "cid" or (search_type == "auto" and query_str.isdigit()):
+            return self.lookup_by_cid(query_str)
+            
+        # 2. Explicit searches
+        if search_type == "name":
+            return self.lookup_by_name(query_str)
+        if search_type == "smiles":
+            return self.lookup_by_smiles(query_str)
+        if search_type == "inchikey":
+            return self.lookup_by_inchikey(query_str)
 
-        props = json_data["PropertyTable"]["Properties"][0]
-
-        return PubChemCompound(
-            cid=props.get("CID"),
-            input_query=query_str,
-            smiles=props.get("CanonicalSMILES"),
-            canonical_smiles=props.get("CanonicalSMILES"),
-            iupac_name=props.get("IUPACName"),
-            molecular_formula=props.get("MolecularFormula"),
-            molecular_weight=float(props["MolecularWeight"]) if props.get("MolecularWeight") is not None else None,
-            inchi=props.get("InChI"),
-            inchikey=props.get("InChIKey"),
-            xlogp=float(props["XLogP"]) if props.get("XLogP") is not None else None,
-            exact_mass=float(props["ExactMass"]) if props.get("ExactMass") is not None else None,
-            charge=int(props["Charge"]) if props.get("Charge") is not None else None,
-            hbond_donor_count=int(props["HBondDonorCount"]) if props.get("HBondDonorCount") is not None else None,
-            hbond_acceptor_count=int(props["HBondAcceptorCount"]) if props.get("HBondAcceptorCount") is not None else None,
-        )
-
-    def download_structure(self, cid: int, format: str = "sdf", dimension: str = "3d", output_dir: str = "structures", force: bool = False) -> str:
-        """Download 2D/3D structure from PubChem safely across threads."""
-        try:
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
-
-            fmt = format.lower().strip()
-            dim = dimension.lower().strip()
-            output_file = os.path.join(output_dir, f"{cid}_{dim}.{fmt}")
-
-            # Resume logic: skip if file exists and has content
-            if not force and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                return 'Skipped (Already exists)'
-
-            api_limiter.wait()  # Thread-safe rate limiting
-
-            if fmt == "png":
-                url = f"{self.base_url}/compound/cid/{cid}/PNG?record_type={dim}&image_size=large"
-                response = requests.get(url, timeout=self.timeout)
-            else:
-                url = f"{self.base_url}/compound/cid/{cid}/record/SDF/?record_type={dim}"
-                response = requests.get(url, timeout=self.timeout)
-
-            if response.status_code == 200:
-                if fmt in ["sdf", "png"]:
-                    with open(output_file, 'wb') as f:
-                        f.write(response.content)
-                elif fmt in ["mol", "pdb"]:
-                    if not RDKIT_AVAILABLE:
-                        return "Error: RDKit is required for MOL or PDB conversion"
-                    
-                    temp_sdf = os.path.join(output_dir, f"temp_{cid}_{threading.get_ident()}.sdf")
-                    with open(temp_sdf, 'wb') as f:
-                        f.write(response.content)
-                    
-                    supplier = Chem.SDMolSupplier(temp_sdf)
-                    mol = next(supplier)
-                    if mol is None:
-                        os.remove(temp_sdf)
-                        return "Error: Invalid SDF retrieved from PubChem"
-                    
-                    if fmt == "mol":
-                        Chem.MolToMolFile(mol, output_file)
-                    elif fmt == "pdb":
-                        Chem.MolToPDBFile(mol, output_file)
-                        
-                    os.remove(temp_sdf)
-                else:
-                    return f"Error: Unsupported format '{fmt}'"
-
-                return 'Downloaded'
-            elif response.status_code == 404:
-                return 'Not Available'
-            else:
-                return f'Error {response.status_code}'
-        except Exception as e:
-            return f'Download Error: {str(e)}'
+        # 3. Smart Auto-Detection Mode
+        if search_type == "auto":
+            # If it's 27 characters and has two hyphens, it's likely an InChIKey
+            if len(query_str) == 27 and query_str[14] == "-" and query_str[25] == "-":
+                return self.lookup_by_inchikey(query_str)
+                
+            # Attempt to validate as SMILES via RDKit
+            # We import here to avoid circular imports if pubchem.py is loaded early
+            try:
+                from smilesherlock.core.smiles import validate_smiles
+                validation = validate_smiles(query_str)
+                if validation.is_valid:
+                    return self.lookup_by_smiles(validation.canonical_smiles)
+            except ImportError:
+                logger.warning("Could not import validate_smiles. Skipping SMILES validation.")
+                pass
+                
+            # If it's not a digit, not an InChIKey, and not a valid SMILES...
+            # The safest fallback is treating it as a chemical Name!
+            return self.lookup_by_name(query_str)
+            
+        logger.error(f"Unknown search_type: {search_type}")
+        return None

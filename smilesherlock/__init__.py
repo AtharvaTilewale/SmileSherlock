@@ -43,6 +43,33 @@ def lookup(
 
     return compound
 
+def lookup_by_name(name: str, use_cache: bool = True) -> Optional[PubChemCompound]:
+    """
+    Search PubChem for a chemical by its common or IUPAC name.
+    
+    Args:
+        name: The chemical name (e.g., "Aspirin", "benzene")
+        use_cache: Whether to use the local SQLite database
+        
+    Returns:
+        PubChemCompound object or None if not found
+    """
+    db = DatabaseManager() if use_cache else None
+    
+    if use_cache:
+        # Check database first
+        cached = db.get_compound(name)
+        if cached:
+            return cached
+            
+    # Fetch from PubChem
+    client = PubChemClient()
+    result = client.lookup_by_name(name)
+    
+    if result and use_cache:
+        db.save_compound(result)
+        
+    return result
 
 def lookup_file(
     input_file: Union[str, Path],
@@ -97,6 +124,7 @@ def download_structure(
 
 __all__ = [
     "lookup",
+    "lookup_by_name",
     "lookup_file",
     "download_structure",
     "validate_smiles",
