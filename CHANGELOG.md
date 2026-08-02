@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silenced aggressive C++ terminal warnings from RDKit when auto-parsing non-SMILES inputs.
 - Fixed a SQLite caching bug where `canonical_smiles` was being referenced using an outdated attribute name.
 - Cleaned up redundant CLI warnings for a smoother user experience.
+- Fixed a bug where the `--3d` and `--2d` flags in the `download` command incorrectly required additional string arguments. 
 
 
 ## [1.0.0] - 2026-08-02
