@@ -109,6 +109,7 @@ Configuration is read from (in order):
 
 ```
 SmileSherlock/
+├── .github/workflows/      # CI/CD workflows
 ├── smilesherlock/          # Main package
 │   ├── __init__.py         # Public API
 │   ├── config.py           # Configuration management
@@ -117,16 +118,22 @@ SmileSherlock/
 │   ├── cli/
 │   │   ├── __init__.py
 │   │   └── main.py         # Typer CLI application
-│   ├── core/               # Core functionality (Phase 2)
+│   ├── core/               # Core functionality
+│   │   ├── __init__.py
 │   │   ├── smiles.py       # SMILES validation
 │   │   ├── pubchem.py      # PubChem API
 │   │   └── database.py     # SQLite caching
-│   └── utils/              # Utilities (Phase 2)
+│   └── utils/              # Utilities
+│       ├── __init__.py
 │       ├── file_io.py      # File parsing
 │       ├── export.py       # Export formats
 │       └── parsers.py      # Input parsers
 ├── tests/                  # Test suite
 ├── docs/                   # Documentation
+├── .readthedocs.yaml       # Read the Docs config
+├── CITATION.cff            # Citation metadata
+├── CHANGELOG.md            # Release history
+├── mkdocs.yml              # Documentation config
 ├── pyproject.toml          # Package metadata & dependencies
 ├── README.md               # This file
 └── LICENSE                 # MIT License
