@@ -243,7 +243,7 @@ If you use SmileSherlock in your research, please cite:
 @software{smilesherlock2026,
   author={Atharva Tilewale},
   title={SmileSherlock: High-performance SMILES validation and PubChem lookup},
-  version={1.0.0},
+  version={1.1.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
