@@ -1,8 +1,10 @@
 """SmileSherlock: High-performance SMILES validation and PubChem lookup."""
 
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Callable, Dict
+import concurrent.futures
 
+from smilesherlock.config import settings
 from smilesherlock.core.database import DatabaseManager
 from smilesherlock.core.pubchem import PubChemClient, PubChemCompound
 from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles
@@ -47,8 +49,9 @@ def lookup_file(
     output_file: Optional[Union[str, Path]] = None,
     output_format: str = "csv",
     remove_duplicates: bool = True,
+    progress_callback: Optional[Callable] = None,
 ) -> List[PubChemCompound]:
-    """Process a batch file of SMILES/CIDs and export the results."""
+    """Process a batch file of SMILES/CIDs using multithreading."""
     input_path = Path(input_file)
     queries = parse_compounds_file(input_path)
     
@@ -56,11 +59,25 @@ def lookup_file(
         queries = list(dict.fromkeys(queries))
         
     results = []
-    for query in queries:
-        compound = lookup(query)
-        if compound:
-            results.append(compound)
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=settings.max_workers) as executor:
+        # Submit all tasks to the thread pool
+        future_to_query = {executor.submit(lookup, query): query for query in queries}
+        
+        for future in concurrent.futures.as_completed(future_to_query):
+            query = future_to_query[future]
+            try:
+                compound = future.result()
+                if compound:
+                    results.append(compound)
+                else:
+                    results.append(PubChemCompound(input_query=query))
+            except Exception:
+                results.append(PubChemCompound(input_query=query))
             
+            if progress_callback:
+                progress_callback()
+
     if output_file:
         export_results(results, Path(output_file), output_format)
         
@@ -74,22 +91,9 @@ def download_structure(
     output_dir: str = "structures",
     force: bool = False,
 ) -> str:
-    """
-    Download a chemical structure from PubChem.
-    
-    Args:
-        cid: PubChem Compound ID.
-        format: Output format ('sdf', 'mol', 'pdb', 'png').
-        dimension: '2d' or '3d'.
-        output_dir: Destination folder path.
-        force: Overwrite existing files (bypasses resume).
-        
-    Returns:
-        Status message string.
-    """
+    """Download a single chemical structure from PubChem."""
     client = PubChemClient()
     return client.download_structure(cid, format, dimension, output_dir, force)
-
 
 __all__ = [
     "lookup",

@@ -2,6 +2,7 @@
 
 import os
 import time
+import threading
 import urllib.parse
 from typing import Any, Dict, Optional, Union
 import requests
@@ -15,6 +16,25 @@ try:
     RDKIT_AVAILABLE = True
 except ImportError:
     RDKIT_AVAILABLE = False
+
+
+class RateLimiter:
+    """Thread-safe rate limiter to respect PubChem API constraints."""
+    def __init__(self, delay: float):
+        self.delay = delay
+        self.lock = threading.Lock()
+        self.last_call = 0.0
+
+    def wait(self) -> None:
+        with self.lock:
+            now = time.time()
+            elapsed = now - self.last_call
+            if elapsed < self.delay:
+                time.sleep(self.delay - elapsed)
+            self.last_call = time.time()
+
+# Global rate limiter shared across all threads
+api_limiter = RateLimiter(settings.rate_limit_delay)
 
 
 class PubChemCompound(BaseModel):
@@ -56,15 +76,15 @@ class PubChemClient:
         self.base_url = (base_url or settings.pubchem_base_url).rstrip("/")
         self.timeout = timeout or settings.pubchem_timeout
         self.retries = settings.pubchem_retries
-        self.rate_limit_delay = settings.rate_limit_delay
 
     def _make_request(
         self, url: str, method: str = "GET", data: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
-        """Execute HTTP request with rate limiting and exponential backoff retries."""
-        time.sleep(self.rate_limit_delay)
-
+        """Execute HTTP request with strict thread-safe rate limiting and exponential backoff."""
+        
         for attempt in range(1, self.retries + 1):
+            api_limiter.wait()  # Thread-safe wait
+            
             try:
                 if method.upper() == "POST":
                     response = requests.post(url, data=data, timeout=self.timeout)
@@ -76,10 +96,12 @@ class PubChemClient:
                 elif response.status_code == 404:
                     logger.debug(f"PubChem resource not found: {url}")
                     return None
+                elif response.status_code == 503:
+                    # PubChem is telling us to slow down explicitly
+                    logger.warning("PubChem 503 Server Busy. Extending backoff.")
+                    time.sleep(attempt * 2.0)
                 else:
-                    logger.warning(
-                        f"PubChem API status {response.status_code} (attempt {attempt}/{self.retries})"
-                    )
+                    logger.warning(f"PubChem API status {response.status_code} (attempt {attempt}/{self.retries})")
             except requests.RequestException as e:
                 logger.error(f"HTTP Request failed (attempt {attempt}/{self.retries}): {e}")
 
@@ -88,9 +110,7 @@ class PubChemClient:
 
         return None
 
-    def lookup(
-        self, query: Union[str, int], search_type: str = "auto"
-    ) -> Optional[PubChemCompound]:
+    def lookup(self, query: Union[str, int], search_type: str = "auto") -> Optional[PubChemCompound]:
         """Lookup compound metadata from PubChem."""
         query_str = str(query).strip()
         if not query_str:
@@ -137,13 +157,10 @@ class PubChemClient:
         )
 
     def download_structure(self, cid: int, format: str = "sdf", dimension: str = "3d", output_dir: str = "structures", force: bool = False) -> str:
-        """
-        Download 2D/3D structure from PubChem.
-        Supports SDF, MOL, PDB, and PNG formats.
-        """
+        """Download 2D/3D structure from PubChem safely across threads."""
         try:
             if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+                os.makedirs(output_dir, exist_ok=True)
 
             fmt = format.lower().strip()
             dim = dimension.lower().strip()
@@ -153,27 +170,24 @@ class PubChemClient:
             if not force and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
                 return 'Skipped (Already exists)'
 
-            time.sleep(self.rate_limit_delay)
+            api_limiter.wait()  # Thread-safe rate limiting
 
             if fmt == "png":
                 url = f"{self.base_url}/compound/cid/{cid}/PNG?record_type={dim}&image_size=large"
                 response = requests.get(url, timeout=self.timeout)
             else:
-                # Always fetch SDF first for standard structure formats
                 url = f"{self.base_url}/compound/cid/{cid}/record/SDF/?record_type={dim}"
                 response = requests.get(url, timeout=self.timeout)
 
             if response.status_code == 200:
                 if fmt in ["sdf", "png"]:
-                    # Save natively supported formats directly
                     with open(output_file, 'wb') as f:
                         f.write(response.content)
                 elif fmt in ["mol", "pdb"]:
-                    # Require RDKit for MOL/PDB conversion
                     if not RDKIT_AVAILABLE:
                         return "Error: RDKit is required for MOL or PDB conversion"
                     
-                    temp_sdf = os.path.join(output_dir, f"temp_{cid}.sdf")
+                    temp_sdf = os.path.join(output_dir, f"temp_{cid}_{threading.get_ident()}.sdf")
                     with open(temp_sdf, 'wb') as f:
                         f.write(response.content)
                     

@@ -1,4 +1,4 @@
-"""SQLite caching layer for SmileSherlock."""
+"""SQLite caching layer for SmileSherlock (Thread-Safe version)."""
 
 import json
 import sqlite3
@@ -18,9 +18,10 @@ class DatabaseManager:
         self.db_path = db_path or settings.db_path
 
     def get_connection(self) -> sqlite3.Connection:
-        """Create database connection."""
+        """Create database connection with multithreading lock timeout."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
+        # timeout=15 forces concurrent threads to wait up to 15s instead of raising "Database is locked"
+        conn = sqlite3.connect(self.db_path, timeout=15.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -28,6 +29,7 @@ class DatabaseManager:
         """Initialize SQLite database schema."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            # ... (Rest of the schema creation remains exactly the same) ...
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS compound_cache (
@@ -45,12 +47,8 @@ class DatabaseManager:
                 )
                 """
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_cid ON compound_cache(cid)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_smiles ON compound_cache(canonical_smiles)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cid ON compound_cache(cid)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_smiles ON compound_cache(canonical_smiles)")
             conn.commit()
             logger.info(f"Initialized database schema at {self.db_path}")
 
@@ -105,6 +103,5 @@ class DatabaseManager:
                     ),
                 )
                 conn.commit()
-                logger.debug(f"Cached compound result for '{query_key}'")
         except Exception as e:
             logger.error(f"Failed to write to cache for '{query_key}': {e}")
