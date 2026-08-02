@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-02
+
+### Added
+- **Lookup by Name:** Added explicit PubChem querying by chemical name.
+- **Smart Auto-Routing:** The CLI `auto` mode now seamlessly falls back to name-based lookup if an invalid SMILES string is provided.
+- **Python API:** Exposed `lookup_by_name()` directly at the package root.
+
+### Fixed
+- Silenced aggressive C++ terminal warnings from RDKit when auto-parsing non-SMILES inputs.
+- Fixed a SQLite caching bug where `canonical_smiles` was being referenced using an outdated attribute name.
+- Cleaned up redundant CLI warnings for a smoother user experience.
+
+
 ## [1.0.0] - 2026-08-02
 
 ### Added

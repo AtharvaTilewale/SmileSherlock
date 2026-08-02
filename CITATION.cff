@@ -4,7 +4,7 @@ authors:
   - family-names: "Tilewale"
     given-names: "Atharva"
 title: "SmileSherlock: High-performance SMILES validation and PubChem lookup"
-version: 1.0.0
+version: 1.1.0
 date-released: 2026-08-02
 url: "https://github.com/AtharvaTilewale/SmileSherlock"
 repository-code: "https://github.com/AtharvaTilewale/SmileSherlock"

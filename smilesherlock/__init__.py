@@ -11,7 +11,7 @@ from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 
