@@ -29,4 +29,4 @@ def test_pubchem_lookup_by_cid():
     
     assert compound is not None
     assert compound.cid == 2244
-    assert compound.iupac_name.lower() == "2-acetoxybenzoic acid"
+    assert compound.iupac_name.lower() == "2-acetyloxybenzoic acid"
