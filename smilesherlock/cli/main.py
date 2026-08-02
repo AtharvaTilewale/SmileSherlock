@@ -32,14 +32,16 @@ def main(
         False,
         "--version",
         "-v",
-        help="Show version and exit",
+        help="Show detailed version info and exit",
     ),
 ) -> None:
     """SmileSherlock - SMILES validation and PubChem lookup tool."""
     if version:
         console.print(
             Panel(
-                f"[bold cyan]SmileSherlock[/bold cyan] v{__version__}",
+                f"[bold cyan]SmileSherlock[/bold cyan] v{__version__}\n"
+                f"[bold]License:[/bold] MIT\n"
+                f"[bold]Repository:[/bold] https://github.com/AtharvaTilewale/SmileSherlock",
                 expand=False,
             )
         )
@@ -158,14 +160,6 @@ def reinstall(
         console.print(f"  [red]✖[/red] Database setup failed: {e}")
         
     console.print("\n[bold green]✨ Reinstallation and auto-setup complete! Your environment is completely fresh.[/bold green]")
-
-
-@app.command()
-def version() -> None:
-    """Display version information."""
-    console.print(f"SmileSherlock version {__version__}")
-    console.print("License: MIT")
-    console.print("Repository: https://github.com/AtharvaTilewale/SmileSherlock")
 
 
 @app.command()
@@ -316,6 +310,10 @@ def download(
     if not cid and not input_file:
         console.print("[red]✖ You must provide either a CID or an --file input.[/red]")
         raise typer.Exit(code=1)
+
+    from smilesherlock import download_structure, lookup
+    from smilesherlock.utils.parsers import parse_compounds_file
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
     out_dir_str = str(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
