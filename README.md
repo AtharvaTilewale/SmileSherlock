@@ -80,6 +80,84 @@ results = lookup_file("compounds.csv", output_format="xlsx")
 # Download structure
 download_structure(5282253, format="sdf", dimension="3d")
 ```
+## Cookbook / Advanced Examples
+
+### CLI: Advanced Lookups
+
+```bash
+# Lookup by common name and bypass the local SQLite cache (force fresh data)
+smilesherlock lookup "Aspirin" --no-cache
+
+# Output raw JSON (perfect for piping into jq or other scripts)
+smilesherlock lookup "CC(=O)OC1=CC=CC=C1C(=O)O" --json
+
+# Explicitly search by CID (prevents interpreting numbers as SMILES/Names)
+smilesherlock lookup 2244 --cid
+```
+
+### CLI: Advanced Batch Processing & Downloading
+
+```bash
+# Process a batch file but keep duplicate entries
+# (default behavior removes duplicates)
+smilesherlock batch raw_data.csv --keep-duplicates --format json
+
+# Batch download 3D SDF structures and overwrite existing files
+smilesherlock download -i compounds.smi --format sdf --3d --force
+
+# Save output to a custom directory
+smilesherlock batch input.txt \
+    --output /path/to/my_project/clean_data.csv
+```
+
+### Python API: Extracting Specific Properties
+
+If you are using SmileSherlock in your own Python scripts or Jupyter notebooks, you can directly access the returned `PubChemCompound` object.
+
+```python
+from smilesherlock import lookup
+
+# Search by Name or SMILES
+compound = lookup("Ibuprofen")
+
+if compound:
+    print(f"CID: {compound.cid}")
+    print(f"IUPAC Name: {compound.iupac_name}")
+    print(f"Molecular Weight: {compound.molecular_weight} g/mol")
+    print(f"XLogP (Lipophilicity): {compound.xlogp}")
+    print(f"H-Bond Donors: {compound.hbond_donor_count}")
+    print(f"H-Bond Acceptors: {compound.hbond_acceptor_count}")
+else:
+    print("Compound not found in PubChem.")
+```
+
+### Python API: Custom Batch Processing
+
+Process a list of SMILES directly without reading from a file.
+
+```python
+from smilesherlock import lookup
+
+smiles_list = [
+    "c1ccccc1",
+    "CC(=O)O",
+    "Invalid_Smiles_String"
+]
+
+results = []
+
+for smiles in smiles_list:
+    # use_cache=True is the default
+    compound = lookup(smiles, use_cache=True)
+
+    if compound:
+        results.append(compound)
+
+print(
+    f"Successfully retrieved {len(results)} "
+    f"out of {len(smiles_list)} compounds."
+)
+```
 
 ## Requirements
 
