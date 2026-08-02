@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: "Tilewale"
+    given-names: "Atharva"
+title: "SmileSherlock: High-performance SMILES validation and PubChem lookup"
+version: 1.0.0
+date-released: 2026-08-02
+url: "https://github.com/AtharvaTilewale/SmileSherlock"
+repository-code: "https://github.com/AtharvaTilewale/SmileSherlock"
+license: MIT
+keywords:
+  - cheminformatics
+  - smiles
+  - pubchem
+  - chemistry
+  - rdkit
