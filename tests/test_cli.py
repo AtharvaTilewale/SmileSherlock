@@ -3,8 +3,8 @@
 from typer.testing import CliRunner
 from smilesherlock.cli.main import app
 
-# mix_stderr=True ensures error messages are captured in result.output
-runner = CliRunner(mix_stderr=True) 
+# Initialize without the invalid mix_stderr argument
+runner = CliRunner() 
 
 def test_app_version():
     """Test the version flag."""
