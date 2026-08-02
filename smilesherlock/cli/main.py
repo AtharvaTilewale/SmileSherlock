@@ -1,5 +1,8 @@
 """Main CLI application for SmileSherlock."""
 
+import sys
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional
 import typer
@@ -8,6 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+
 from smilesherlock import __version__, lookup, validate_smiles, lookup_file, download_structure
 from smilesherlock.config import settings
 from smilesherlock.core.database import DatabaseManager
@@ -94,6 +98,69 @@ def init() -> None:
 
 
 @app.command()
+def reinstall(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+) -> None:
+    """
+    Completely reset and reinstall SmileSherlock.
+    Removes all databases, logs, and caches, then reinstalls the package and runs auto-setup.
+    """
+    if not yes:
+        confirm = typer.confirm(
+            "⚠️ This will DELETE all your local databases, logs, and caches, and reinstall the tool binaries. Are you sure?"
+        )
+        if not confirm:
+            console.print("[blue]ℹ Reinstallation aborted.[/blue]")
+            raise typer.Exit()
+            
+    console.print(Panel("[bold red]Factory Reset & Reinstallation[/bold red]", expand=False))
+    
+    # 1. Remove all data directories (DB, logs, cache)
+    console.print("[bold yellow]1. Removing databases, caches, and logs...[/bold yellow]")
+    for directory in [settings.cache_dir, settings.data_dir, settings.log_dir]:
+        if directory.exists():
+            try:
+                shutil.rmtree(directory)
+                console.print(f"  [green]✔[/green] Wiped {directory}")
+            except Exception as e:
+                console.print(f"  [red]✖[/red] Could not remove {directory}: {e}")
+                
+    # 2. Reinstall binaries/scripts via pip
+    console.print("\n[bold yellow]2. Reinstalling package and regenerating binaries...[/bold yellow]")
+    try:
+        # Try installing from current source directory (ideal for dev environment)
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--force-reinstall", "-e", ".[dev]"], 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL
+        )
+        console.print("  [green]✔[/green] Package and shortcuts reinstalled successfully.")
+    except subprocess.CalledProcessError:
+        try:
+            # Fallback to standard package name if not in repo root
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "--force-reinstall", "smilesherlock"], 
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            console.print("  [green]✔[/green] Package and shortcuts reinstalled successfully.")
+        except Exception as e:
+            console.print(f"  [yellow]⚠[/yellow] Automatic pip reinstall failed. You may need to run 'pip install -e .' manually.")
+            
+    # 3. Auto-setup
+    console.print("\n[bold yellow]3. Running Auto-Setup...[/bold yellow]")
+    try:
+        # Re-create the directories and DB from scratch
+        db_mgr = DatabaseManager()
+        db_mgr.init_db()
+        console.print(f"  [green]✔[/green] Fresh database schema initialized at {settings.db_path}")
+    except Exception as e:
+        console.print(f"  [red]✖[/red] Database setup failed: {e}")
+        
+    console.print("\n[bold green]✨ Reinstallation and auto-setup complete! Your environment is completely fresh.[/bold green]")
+
+
+@app.command()
 def version() -> None:
     """Display version information."""
     console.print(f"SmileSherlock version {__version__}")
@@ -150,10 +217,6 @@ def lookup_cmd(
 # Alias CLI app command
 app.command(name="lookup")(lookup_cmd)
 
-
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-from smilesherlock.utils.parsers import parse_compounds_file
-from smilesherlock.utils.export import export_results
 
 @app.command()
 def batch(
@@ -253,10 +316,6 @@ def download(
     if not cid and not input_file:
         console.print("[red]✖ You must provide either a CID or an --file input.[/red]")
         raise typer.Exit(code=1)
-
-    from smilesherlock import download_structure, lookup
-    from smilesherlock.utils.parsers import parse_compounds_file
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
     out_dir_str = str(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
