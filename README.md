@@ -80,7 +80,7 @@ results = lookup_file("compounds.csv", output_format="xlsx")
 # Download structure
 download_structure(5282253, format="sdf", dimension="3d")
 ```
-## Cookbook / Advanced Examples
+<!-- ## Cookbook / Advanced Examples
 
 ### CLI: Advanced Lookups
 
@@ -157,7 +157,11 @@ print(
     f"Successfully retrieved {len(results)} "
     f"out of {len(smiles_list)} compounds."
 )
-```
+``` -->
+
+## Documentation
+
+For complete tutorials and advanced usage examples, see the **[Practical Guide](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/practical_guide.md)** or visit the **[official documentation](https://smilesherlock.readthedocs.io/)** on Read the Docs.
 
 ## Requirements
 
