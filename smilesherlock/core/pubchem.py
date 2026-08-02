@@ -222,3 +222,53 @@ class PubChemClient:
             
         logger.error(f"Unknown search_type: {search_type}")
         return None
+    
+    def download_structure(self, cid: int, format: str = "sdf", dimension: str = "3d", output_dir: str = "structures", force: bool = False) -> str:
+        """
+        Download physical structure file from PubChem.
+        Includes smart resume logic to skip existing files.
+        """
+        from pathlib import Path
+        
+        format = format.lower()
+        dimension = dimension.lower()
+        
+        # Build the save path
+        out_path = Path(output_dir) / f"{cid}_{dimension}.{format}"
+        
+        # Smart resume logic
+        if out_path.exists() and not force:
+            return "Skipped (File already exists)"
+            
+        # Construct the exact URL based on requested format and dimension
+        if format == "png":
+            # Images don't use the record_type parameter in the same way
+            url = f"{self.base_url}/compound/cid/{cid}/PNG?image_size=large"
+        else:
+            url = f"{self.base_url}/compound/cid/{cid}/{format.upper()}"
+            # PubChem requires the record_type query parameter for 3D structures
+            url += "?record_type=3d" if dimension == "3d" else "?record_type=2d"
+            
+        self._enforce_rate_limit()
+        
+        try:
+            # We use self.session to inherit the retry logic and headers
+            response = self.session.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                # Write in binary mode to support images (PNG) and text (SDF) safely
+                with open(out_path, "wb") as f:
+                    f.write(response.content)
+                return "Downloaded"
+                
+            elif response.status_code == 404:
+                return "Not Found (3D structure might not be computed for this CID yet)"
+            elif response.status_code == 400:
+                return f"Bad Request (Format '{format}' might not be supported)"
+            else:
+                return f"HTTP Error {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error downloading CID {cid}: {e}")
+            return f"Network Error: {e}"
