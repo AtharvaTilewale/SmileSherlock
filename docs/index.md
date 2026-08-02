@@ -1,11 +1,12 @@
 # SmileSherlock
 
 <p align="center">
-  <img src="./assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="800" />
+  <img src="https://raw.githubusercontent.com/AtharvaTilewale/SmileSherlock/main/docs/assets/smilesherlock-logo.png" alt="SmileSherlock logo" width="800" />
 </p>
 
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
 
+[![PyPI](https://img.shields.io/pypi/v/smilesherlock)](https://pypi.org/project/smilesherlock/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -26,7 +27,7 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 
 ## Installation
 
-### From PyPI
+### From PyPI 
 
 ```bash
 pip install smilesherlock
@@ -79,6 +80,84 @@ results = lookup_file("compounds.csv", output_format="xlsx")
 # Download structure
 download_structure(5282253, format="sdf", dimension="3d")
 ```
+## Cookbook / Advanced Examples
+
+### CLI: Advanced Lookups
+
+```bash
+# Lookup by common name and bypass the local SQLite cache (force fresh data)
+smilesherlock lookup "Aspirin" --no-cache
+
+# Output raw JSON (perfect for piping into jq or other scripts)
+smilesherlock lookup "CC(=O)OC1=CC=CC=C1C(=O)O" --json
+
+# Explicitly search by CID (prevents interpreting numbers as SMILES/Names)
+smilesherlock lookup 2244 --cid
+```
+
+### CLI: Advanced Batch Processing & Downloading
+
+```bash
+# Process a batch file but keep duplicate entries
+# (default behavior removes duplicates)
+smilesherlock batch raw_data.csv --keep-duplicates --format json
+
+# Batch download 3D SDF structures and overwrite existing files
+smilesherlock download -i compounds.smi --format sdf --3d --force
+
+# Save output to a custom directory
+smilesherlock batch input.txt \
+    --output /path/to/my_project/clean_data.csv
+```
+
+### Python API: Extracting Specific Properties
+
+If you are using SmileSherlock in your own Python scripts or Jupyter notebooks, you can directly access the returned `PubChemCompound` object.
+
+```python
+from smilesherlock import lookup
+
+# Search by Name or SMILES
+compound = lookup("Ibuprofen")
+
+if compound:
+    print(f"CID: {compound.cid}")
+    print(f"IUPAC Name: {compound.iupac_name}")
+    print(f"Molecular Weight: {compound.molecular_weight} g/mol")
+    print(f"XLogP (Lipophilicity): {compound.xlogp}")
+    print(f"H-Bond Donors: {compound.hbond_donor_count}")
+    print(f"H-Bond Acceptors: {compound.hbond_acceptor_count}")
+else:
+    print("Compound not found in PubChem.")
+```
+
+### Python API: Custom Batch Processing
+
+Process a list of SMILES directly without reading from a file.
+
+```python
+from smilesherlock import lookup
+
+smiles_list = [
+    "c1ccccc1",
+    "CC(=O)O",
+    "Invalid_Smiles_String"
+]
+
+results = []
+
+for smiles in smiles_list:
+    # use_cache=True is the default
+    compound = lookup(smiles, use_cache=True)
+
+    if compound:
+        results.append(compound)
+
+print(
+    f"Successfully retrieved {len(results)} "
+    f"out of {len(smiles_list)} compounds."
+)
+```
 
 ## Requirements
 
@@ -108,6 +187,7 @@ Configuration is read from (in order):
 
 ```
 SmileSherlock/
+├── .github/workflows/      # CI/CD workflows
 ├── smilesherlock/          # Main package
 │   ├── __init__.py         # Public API
 │   ├── config.py           # Configuration management
@@ -116,16 +196,22 @@ SmileSherlock/
 │   ├── cli/
 │   │   ├── __init__.py
 │   │   └── main.py         # Typer CLI application
-│   ├── core/               # Core functionality (Phase 2)
+│   ├── core/               # Core functionality
+│   │   ├── __init__.py
 │   │   ├── smiles.py       # SMILES validation
 │   │   ├── pubchem.py      # PubChem API
 │   │   └── database.py     # SQLite caching
-│   └── utils/              # Utilities (Phase 2)
+│   └── utils/              # Utilities
+│       ├── __init__.py
 │       ├── file_io.py      # File parsing
 │       ├── export.py       # Export formats
 │       └── parsers.py      # Input parsers
 ├── tests/                  # Test suite
 ├── docs/                   # Documentation
+├── .readthedocs.yaml       # Read the Docs config
+├── CITATION.cff            # Citation metadata
+├── CHANGELOG.md            # Release history
+├── mkdocs.yml              # Documentation config
 ├── pyproject.toml          # Package metadata & dependencies
 ├── README.md               # This file
 └── LICENSE                 # MIT License
