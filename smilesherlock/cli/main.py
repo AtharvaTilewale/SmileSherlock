@@ -296,17 +296,17 @@ def download(
                         target_cid = compound.cid
                 
                 if target_cid:
-                    return download_structure(target_cid, format, dimension, out_dir_str, force)
-                return "Not Found"
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=settings.max_workers) as executor:
-                future_to_query = {executor.submit(process_download, q): q for q in queries}
-                for future in concurrent.futures.as_completed(future_to_query):
-                    status = future.result()
-                    if status == "Downloaded": success += 1
-                    elif "Skipped" in status: skipped += 1
-                    else: failed += 1
-                    progress.advance(task)
+                    status = download_structure(target_cid, format, dimension, out_dir_str, force)
+                    if status == "Downloaded":
+                        success += 1
+                    elif "Skipped" in status:
+                        skipped += 1
+                    else:
+                        failed += 1
+                else:
+                    failed += 1
+                    
+                progress.advance(task)
                 
         console.print(f"\n[green]✔[/green] Batch download complete!")
         console.print(f"  • Downloaded: [green]{success}[/green]")
