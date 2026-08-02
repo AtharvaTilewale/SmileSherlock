@@ -89,7 +89,7 @@ smilesherlock lookup "Ibuprofen" --json
 
 ### Python API Examples
 
-```
+```python
 from smilesherlock import lookup, lookup_by_name
 
 # 1. Smart Auto-Detect Lookup
@@ -119,7 +119,7 @@ Supported Input Formats: `.csv`, `.tsv`, `.xlsx`, `.smi`, `.sdf`, `.txt`
 
 ## CLI Examples
 
-```
+```bash
 # Basic batch processing (auto-generates a CSV output and a .log report)
 smilesherlock batch input_data.csv
 
@@ -167,7 +167,7 @@ Supported Dimensions: `2d`, `3d`
 
 Downloaded files are skipped automatically unless `--force` is used.
 
-```
+```bash
 # Download a single 3D SDF file by its PubChem CID
 smilesherlock download 2244 --format sdf --3d
 
@@ -183,7 +183,7 @@ smilesherlock download -i my_compounds.csv --format sdf --force
 
 ## Python API Examples
 
-```
+```python
 from smilesherlock import download_structure
 
 # Download a single structure programmatically
@@ -202,7 +202,7 @@ print(f"Download status: {status}")
 
 If you only need to validate SMILES strings and calculate RDKit descriptors locally without querying the PubChem internet database, you can use the core SMILES engine directly.
 
-```
+```python
 from smilesherlock import validate_smiles
 
 # Validate a complex SMILES string
