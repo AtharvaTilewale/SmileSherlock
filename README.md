@@ -31,25 +31,25 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 
 ### From PyPI 
 
-`ash
+```bash
 pip install smilesherlock
-`
+```
 
 ### Development Installation
 
 Clone the repository and install in editable mode:
 
-`ash
+```bash
 git clone https://github.com/AtharvaTilewale/SmileSherlock.git
 cd SmileSherlock
 pip install -e ".[dev]"
-`
+```
 
 ## Quick Start
 
 ### CLI Usage
 
-`ash
+```bash
 # Show configuration and status
 smilesherlock status
 
@@ -78,11 +78,11 @@ smilesherlock download --file compounds.csv --gen missing --3d --format sdf --ou
 
 # Batch generate all structures offline from a SMILES file (--gen all)
 smilesherlock download --file compounds.smi --gen all --3d --format pdb --output-dir ./3d_models/
-`
+```
 
 ### Python API
 
-`python
+```python
 from smilesherlock import lookup, lookup_file, download_structure, generate_structure, validate_smiles
 
 # Lookup single compound
@@ -103,7 +103,7 @@ generate_structure(
     dimension="3d",
     title="Aspirin"
 )
-`
+``` 
 For more detailed API documentation, see the **[API Reference](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/api_reference.md)** page.
 
 ## Documentation
@@ -143,7 +143,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you use SmileSherlock in your research, please cite:
 
-`ibtex
+```bibtex
 @software{smilesherlock2026,
   author={Atharva Tilewale},
   doi={10.5281/zenodo.21763825},
@@ -153,7 +153,7 @@ If you use SmileSherlock in your research, please cite:
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
-`
+```
 
 ## Support
 
