@@ -18,69 +18,92 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 - **Smart Auto-detection** - Automatically identify SMILES columns
 - **PubChem Lookup** - Search by SMILES, CID, Name, InChI, and InChIKey
 - **Rich Metadata** - Retrieve IUPAC name, molecular formula, mass, descriptors
-- **Structure Downloads** - Get 2D/3D SDF, MOL, PDB, and PNG formats
+- **Structure Downloads** - Get 2D/3D SDF, MOL, PDB, and PNG formats from PubChem
+- **Offline Molecule Generation (--gen)** - Generate 2D and 3D conformations (SDF, MOL, PDB) offline from SMILES via RDKit with forcefield optimization
 - **Batch Processing** - Process hundreds of compounds with progress tracking
 - **Async/Multithreading** - Fast parallel downloads with retry logic
 - **Caching** - SQLite database for storing results locally
 - **Multiple Exports** - Save results as CSV, Excel, or JSON
-- **Python API** - Use directly in your scripts via `smilesherlock` module
-- **CLI Tool** - Full-featured command-line interface with `smilesherlock` command
+- **Python API** - Use directly in your scripts via smilesherlock module
+- **CLI Tool** - Full-featured command-line interface with smilesherlock command
 
 ## Installation
 
 ### From PyPI 
 
-```bash
+`ash
 pip install smilesherlock
-```
+`
 
 ### Development Installation
 
 Clone the repository and install in editable mode:
 
-```bash
+`ash
 git clone https://github.com/AtharvaTilewale/SmileSherlock.git
 cd SmileSherlock
 pip install -e ".[dev]"
-```
+`
 
 ## Quick Start
 
 ### CLI Usage
 
-```bash
+`ash
 # Show configuration and status
 smilesherlock status
 
 # Initialize directories and database
 smilesherlock init
 
-# Lookup a single compound
+# Lookup a single compound (by SMILES, CID, or Chemical Name)
 smilesherlock lookup "c1ccccc1"  # Benzene
-smilesherlock lookup 5282253 --cid
+smilesherlock lookup "aspirin"
+smilesherlock lookup 5282253 --type cid
 
-# Batch process a file
+# Batch process a file to retrieve metadata
 smilesherlock batch compounds.csv --output results.xlsx --format xlsx
 
-# Download structure
+# Download structure from PubChem
 smilesherlock download 5282253 --format sdf --3d
-```
+
+# Generate 3D structure offline from SMILES using RDKit (--gen all)
+smilesherlock download "CC(=O)OC1=CC=CC=C1C(=O)O" --gen all --3d --format sdf
+
+# Generate 2D MOL structure locally from SMILES
+smilesherlock download "c1ccccc1" --gen all --2d --format mol
+
+# Batch download with offline fallback for missing structures (--gen missing)
+smilesherlock download --file compounds.csv --gen missing --3d --format sdf --output-dir ./structures/
+
+# Batch generate all structures offline from a SMILES file (--gen all)
+smilesherlock download --file compounds.smi --gen all --3d --format pdb --output-dir ./3d_models/
+`
 
 ### Python API
 
-```python
-from smilesherlock import lookup, lookup_file, download_structure
+`python
+from smilesherlock import lookup, lookup_file, download_structure, generate_structure, validate_smiles
 
 # Lookup single compound
 result = lookup("c1ccccc1")
 print(result.cid, result.iupac_name)
 
-# Process file
+# Process batch file
 results = lookup_file("compounds.csv", output_format="xlsx")
 
-# Download structure
+# Download structure from PubChem
 download_structure(5282253, format="sdf", dimension="3d")
-```
+
+# Generate 2D or 3D structure offline from SMILES
+generate_structure(
+    smiles="CC(=O)OC1=CC=CC=C1C(=O)O",
+    output_path="aspirin_3d.sdf",
+    format="sdf",
+    dimension="3d",
+    title="Aspirin"
+)
+`
 For more detailed API documentation, see the **[API Reference](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/api_reference.md)** page.
 
 ## Documentation
@@ -105,9 +128,9 @@ For configuration and architecture details, see the **[Configuration & Architect
 Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch (git checkout -b feature/amazing-feature)
+3. Commit changes (git commit -m 'Add amazing feature')
+4. Push to branch (git push origin feature/amazing-feature)
 5. Open a Pull Request
 
 For more details, see the **[Contributing Guide](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/contributing.md)**.
@@ -120,17 +143,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you use SmileSherlock in your research, please cite:
 
-```bibtex
+`ibtex
 @software{smilesherlock2026,
   author={Atharva Tilewale},
   doi={10.5281/zenodo.21763825},
   month={8},
   title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
-  version={1.1.0},
+  version={1.2.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
-```
+`
 
 ## Support
 

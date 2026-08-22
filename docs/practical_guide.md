@@ -157,29 +157,35 @@ for chem in my_chemicals:
 
 ---
 
-# 4. Chemical Structure Downloads
+# 4. Chemical Structure Downloads & Generation
 
-Download physical structure files with built-in resume logic (it skips files you've already downloaded).
+Download physical structure files from PubChem or generate 2D/3D conformations offline from SMILES using RDKit with built-in resume logic.
 
-Supported Formats: `sdf`, `mol`, `pdb`, `png`
+Supported Formats: sdf, mol, pdb, png (generation supports sdf, mol, pdb)
 
-Supported Dimensions: `2d`, `3d`
+Supported Dimensions: 2d, 3d
 
-Downloaded files are skipped automatically unless `--force` is used.
+Downloaded and generated files are skipped automatically unless --force is used.
 
-```bash
+`ash
 # Download a single 3D SDF file by its PubChem CID
 smilesherlock download 2244 --format sdf --3d
 
-# Save a 2D PNG image to a specific folder
-smilesherlock download 2244 --format png --2d --output-dir ./images/
+# Generate all 3D structures locally from SMILES using RDKit (--gen all)
+smilesherlock download "CC(=O)OC1=CC=CC=C1C(=O)O" --gen all --3d --format sdf
 
-# Batch download 3D PDB files from a list of names/SMILES in a CSV
-smilesherlock download -i my_compounds.csv --format pdb --3d --output-dir ./3d_models/
+# Generate 2D MOL structure locally from SMILES
+smilesherlock download "c1ccccc1" --gen all --2d --format mol
+
+# Batch download with fallback to local generation (--gen missing)
+smilesherlock download -i my_compounds.csv --gen missing --format sdf --3d --output-dir ./structures/
+
+# Batch generate all structures offline from file
+smilesherlock download -i my_compounds.smi --gen all --format pdb --3d --output-dir ./3d_models/
 
 # Force overwrite existing files (disables resume logic)
 smilesherlock download -i my_compounds.csv --format sdf --force
-```
+`
 
 ## Python API Examples
 

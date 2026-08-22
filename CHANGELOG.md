@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-23
+
+### Added
+- **Offline Molecular Structure Generation (--gen)**: Generate 2D and 3D conformations directly from SMILES using RDKit with forcefield energy minimization (MMFF94 / UFF).
+  - --gen all: Generate 2D/3D structures locally for all input compounds.
+  - --gen missing: Seamlessly download from PubChem when available, automatically generating structures locally when missing or not in database.
+- **Multi-Format Conformations**: Support for .sdf, .mol, and .pdb output formats with --3d and --2d coordinate options.
+- **Python API**: Exported generate_structure() at the package root for programmatic offline conformation generation.
+
+### Fixed
+- Fixed PubChem compound SQLite caching attribute resolution for isomeric_smiles.
+- Improved CLI table formatting and command registration.
+
 ## [1.1.0] - 2026-08-02
 
 ### Added

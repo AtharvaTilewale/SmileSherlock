@@ -1,10 +1,12 @@
-# API Reference
+﻿# API Reference
 
 This page details the core public functions and data models exposed by the `smilesherlock` package. All core functions can be imported directly from the top-level package.
 
 ```python
-from smilesherlock import lookup, lookup_by_name, lookup_file, validate_smiles
+from smilesherlock import lookup, lookup_by_name, lookup_file, validate_smiles, download_structure, generate_structure
 ```
+
+`lookup()`
 
 The primary router for fetching chemical data. It auto-detects the format of the query and routes it to the appropriate PubChem endpoint.
 
@@ -25,13 +27,10 @@ def lookup_by_name(name: str, use_cache: bool = True) -> Optional[PubChemCompoun
 Explicitly queries PubChem by a common or IUPAC chemical name. This bypasses all SMILES validation checks.
 
 - ### Parameters:
-
     - `name` (str): The chemical name (e.g., "`Aspirin`", "`Benzene`").
-
     - `use_cache` (bool, optional): Defaults to `True`.
 
 - ### Returns:
-
     - `PubChemCompound` if found, otherwise `None`.
 
 `lookup_file()`
@@ -43,17 +42,12 @@ def lookup_file(input_file: Union[str, Path], output_file: Optional[Union[str, P
 Processes a batch file of compounds using multithreading.
 
 - ### Parameters:
-
     - `input_file` (str | Path): Path to the input file (`.csv`, `.tsv`, `.xlsx`, `.smi`, `.sdf`).
-
     - `output_file` (str | Path, optional): Path to save the results. If `None`, results are kept in memory.
-
     - `output_format` (str, optional): Format to export ("`csv`", "`xlsx`", "`json`").
-
     - `remove_duplicates` (bool, optional): Automatically dedupes the input list to save API calls. Defaults to `True`.
 
 - ### Returns:
-
     - A list of `PubChemCompound` objects.
   
 `download_structure()`
@@ -65,20 +59,33 @@ def download_structure(cid: int, format: str = "sdf", dimension: str = "3d", out
 Downloads physical structure files directly from PubChem. Features smart-resume to skip existing files.
 
 - ### Parameters:
-
     - `cid` (int): The PubChem CID.
-
     - `format` (str, optional): "`sdf`", "`mol`", "`pdb`", or "`png`". Defaults to "`sdf`".
-
     - `dimension` (str, optional): "`2d`" or "`3d`". Defaults to "`3d`".
-
     - `output_dir` (str, optional): The folder to save structures in. Defaults to "`structures`".
-
     - `force` (bool, optional): Overwrite existing files. Defaults to `False`.
 
 - ### Returns:
+    - A status string ("`Downloaded`", "`Skipped`", or error message).
 
-A status string ("`Downloaded`", "`Skipped`", or error message).
+`generate_structure()`
+
+```python
+def generate_structure(smiles: str, output_path: Union[str, Path], format: str = "sdf", dimension: str = "3d", force: bool = False, title: Optional[str] = None) -> str
+```
+
+Generates 2D or 3D molecular conformations offline from a SMILES string using RDKit and saves them to file.
+
+- ### Parameters:
+    - `smiles` (str): Input SMILES string.
+    - `output_path` (str | Path): Output file destination path.
+    - `format` (str, optional): Supported formats are "`sdf`", "`mol`", and "`pdb`". Defaults to "`sdf`".
+    - `dimension` (str, optional): "`2d`" or "`3d`". Defaults to "`3d`".
+    - `force` (bool, optional): Overwrite existing file if `True`. Defaults to `False`.
+    - `title` (str, optional): Compound title or identifier to embed in the structure.
+
+- ### Returns:
+    - A status string ("`Generated`", "`Skipped (File already exists)`", or error message).
 
 `validate_smiles()`
 
@@ -89,17 +96,14 @@ def validate_smiles(smiles_str: str) -> SMILESValidationResult
 Performs high-speed, offline SMILES validation and physicochemical descriptor calculation using the local RDKit engine. Does not connect to the internet.
 
 - ### Parameters:
-
     - `smiles_str` (str): The SMILES string to validate.
 
 - ### Returns:
-
     - A `SMILESValidationResult` object.
 
 ## Data Models
 
 SmileSherlock uses [Pydantic](https://pydantic-docs.helpmanual.io/) models to strictly type and validate returned data.
-
 
 `PubChemCompound`
 
