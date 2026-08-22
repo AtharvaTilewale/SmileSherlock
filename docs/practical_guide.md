@@ -161,11 +161,11 @@ for chem in my_chemicals:
 
 Download physical structure files from PubChem or generate 2D/3D conformations offline from SMILES using RDKit with built-in resume logic.
 
-Supported Formats: sdf, mol, pdb, png (generation supports sdf, mol, pdb)
+Supported Formats: `sdf`, `mol`, `pdb`, `png` (generation supports `sdf`, `mol`, `pdb`)
 
-Supported Dimensions: 2d, 3d
+Supported Dimensions: `2d`, `3d`
 
-Downloaded and generated files are skipped automatically unless --force is used.
+Downloaded and generated files are skipped automatically unless `--force` is used.
 
 ```bash
 # Download a single 3D SDF file by its PubChem CID
