@@ -167,7 +167,7 @@ Supported Dimensions: 2d, 3d
 
 Downloaded and generated files are skipped automatically unless --force is used.
 
-`ash
+```bash
 # Download a single 3D SDF file by its PubChem CID
 smilesherlock download 2244 --format sdf --3d
 
@@ -185,7 +185,7 @@ smilesherlock download -i my_compounds.smi --gen all --format pdb --3d --output-
 
 # Force overwrite existing files (disables resume logic)
 smilesherlock download -i my_compounds.csv --format sdf --force
-`
+```
 
 ## Python API Examples
 
