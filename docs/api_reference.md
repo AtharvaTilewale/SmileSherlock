@@ -137,3 +137,125 @@ The object returned by the offline `validate_smiles()` function.
 | `tpsa` | `float` | Topological Polar Surface Area (TPSA). |
 | `heavy_atom_count` | `int` | Total number of heavy (non-hydrogen) atoms. |
 | `error_message` | `str` | Error message returned if `is_valid` is `False`. |
+
+---
+
+## New in v1.3.0: Cheminformatics Functions
+
+All three functions below are **fully offline** and powered by RDKit. No network access is required.
+
+```python
+from smilesherlock import compute_fingerprint, apply_filters, compute_similarity
+```
+
+---
+
+`compute_fingerprint()`
+
+```python
+def compute_fingerprint(smiles: str, fp_type: str = "ecfp4", n_bits: int = 2048) -> Union[FingerprintResult, List[FingerprintResult]]
+```
+
+Computes molecular fingerprints from a SMILES string. Uses the modern `rdFingerprintGenerator` API internally.
+
+- ### Parameters:
+    - `smiles` (str): Input SMILES string.
+    - `fp_type` (str): Fingerprint algorithm. Options: `"ecfp4"`, `"ecfp6"`, `"fcfp4"`, `"maccs"`, `"rdkit"`, `"atompair"`, `"torsion"`, or `"all"`.
+    - `n_bits` (int): Number of bits for hashed fingerprints. Ignored for MACCS (fixed at 167). Default `2048`.
+
+- ### Returns:
+    - A single `FingerprintResult`, or a `List[FingerprintResult]` when `fp_type="all"`.
+
+---
+
+`apply_filters()`
+
+```python
+def apply_filters(smiles: str, rules: Optional[List[str]] = None) -> FilterResult
+```
+
+Evaluates drug-likeness and ADMET filters on a SMILES string.
+
+- ### Parameters:
+    - `smiles` (str): Input SMILES string.
+    - `rules` (list, optional): Rule names to apply. Valid values: `"lipinski"`, `"veber"`, `"ghose"`, `"egan"`, `"ro3"`, `"pains"`, `"qed"`. Pass `None` or `["all"]` to apply every rule.
+
+- ### Returns:
+    - A `FilterResult` with per-rule `RuleResult` objects and computed property values.
+
+---
+
+`compute_similarity()`
+
+```python
+def compute_similarity(query_smiles: str, library: List[str], fp_type: str = "ecfp4", n_bits: int = 2048, threshold: float = 0.0, top_n: Optional[int] = None) -> List[SimilarityResult]
+```
+
+Computes Tanimoto similarity between a query SMILES and a list of library SMILES.
+
+- ### Parameters:
+    - `query_smiles` (str): Query compound SMILES.
+    - `library` (List[str]): List of library SMILES to compare against.
+    - `fp_type` (str): Fingerprint type for comparison. Same options as `compute_fingerprint`.
+    - `n_bits` (int): Fingerprint size in bits.
+    - `threshold` (float): Minimum Tanimoto score to include (0.0–1.0). Default `0.0`.
+    - `top_n` (int, optional): Return only the top N results. `None` returns all above threshold.
+
+- ### Returns:
+    - `List[SimilarityResult]` sorted by similarity descending.
+
+---
+
+## New Data Models (v1.3.0)
+
+`FingerprintResult`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `smiles` | `str` | Input SMILES string |
+| `fingerprint_type` | `str` | Algorithm used (e.g., `"ecfp4"`) |
+| `n_bits` | `int` | Total number of bits |
+| `n_on_bits` | `int` | Number of set bits |
+| `density` | `float` | Fraction of set bits (`n_on_bits / n_bits`) |
+| `bit_string` | `str` | Full binary bit-string (0s and 1s) |
+| `hex_string` | `str` | Hex-encoded fingerprint |
+
+`FilterResult`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `smiles` | `str` | Input SMILES string |
+| `molecular_weight` | `float` | Average molecular weight (g/mol) |
+| `logp` | `float` | RDKit MolLogP |
+| `hbd` | `int` | H-bond donor count |
+| `hba` | `int` | H-bond acceptor count |
+| `tpsa` | `float` | Topological Polar Surface Area (A^2) |
+| `rotatable_bonds` | `int` | Rotatable bond count |
+| `heavy_atom_count` | `int` | Heavy atom count |
+| `molar_refractivity` | `float` | Molar refractivity (MR) |
+| `qed_score` | `float` | QED drug-likeness score (0–1) |
+| `lipinski` | `RuleResult` | Lipinski Ro5 pass/fail |
+| `veber` | `RuleResult` | Veber oral bioavailability pass/fail |
+| `ghose` | `RuleResult` | Ghose filter pass/fail |
+| `egan` | `RuleResult` | Egan filter pass/fail |
+| `ro3` | `RuleResult` | Rule of Three (lead-likeness) pass/fail |
+| `pains` | `RuleResult` | PAINS alert detection result |
+| `passes_all` | `bool` | `True` if all requested rules pass |
+| `error` | `str` | Error message if SMILES is invalid |
+
+`RuleResult`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `passed` | `bool` | `True` if compound satisfies this rule |
+| `details` | `str` | Human-readable explanation |
+
+`SimilarityResult`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `rank` | `int` | Rank (1 = most similar) |
+| `query` | `str` | Query SMILES |
+| `hit` | `str` | Library SMILES of the hit |
+| `similarity` | `float` | Tanimoto similarity score (0–1) |
+| `fingerprint_type` | `str` | Fingerprint algorithm used |

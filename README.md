@@ -20,6 +20,9 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 - **Rich Metadata** - Retrieve IUPAC name, molecular formula, mass, descriptors
 - **Structure Downloads** - Get 2D/3D SDF, MOL, PDB, and PNG formats from PubChem
 - **Offline Molecule Generation (--gen)** - Generate 2D and 3D conformations (SDF, MOL, PDB) offline from SMILES via RDKit with forcefield optimization
+- **Molecular Fingerprints** - ECFP4, ECFP6, FCFP4, MACCS, RDKit, AtomPair, Torsion fingerprints offline (`fingerprint` command)
+- **Similarity Search** - Tanimoto-based library search with threshold and top-N ranking (`similar` command)
+- **Drug-Likeness Filtering** - Lipinski Ro5, Veber, Ghose, Egan, Ro3, PAINS alerts, and QED scoring (`filter` command)
 - **Batch Processing** - Process hundreds of compounds with progress tracking
 - **Async/Multithreading** - Fast parallel downloads with retry logic
 - **Caching** - SQLite database for storing results locally
@@ -80,7 +83,47 @@ smilesherlock download --file compounds.csv --gen missing --3d --format sdf --ou
 smilesherlock download --file compounds.smi --gen all --3d --format pdb --output-dir ./3d_models/
 ```
 
-### Python API
+#
+### Molecular Fingerprints
+
+```bash
+# Generate ECFP4 fingerprint (single compound)
+smilesherlock fingerprint "CC(=O)OC1=CC=CC=C1C(=O)O" --type ecfp4
+
+# All 7 fingerprint types at once
+smilesherlock fingerprint "CC(=O)OC1=CC=CC=C1C(=O)O" --type all
+
+# Batch - save to CSV
+smilesherlock fingerprint --file compounds.smi --type maccs --output fingerprints.csv
+```
+
+### Similarity Search
+
+```bash
+# Top-10 most similar compounds (Tanimoto >= 0.5)
+smilesherlock similar "CC(=O)OC1=CC=CC=C1C(=O)O" --file library.smi --threshold 0.5 --top 10
+
+# Save hits to CSV
+smilesherlock similar "CCO" --file compounds.csv --fp-type ecfp6 --output hits.csv
+```
+
+### Drug-Likeness Filtering
+
+```bash
+# Single compound - all rules
+smilesherlock filter "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+# Batch - keep only Lipinski-compliant, PAINS-free compounds
+smilesherlock filter --file compounds.csv --rules lipinski,veber,pains --output drug_like.csv
+
+# Remove PAINS compounds from a library
+smilesherlock filter --file library.csv --rules pains --output no_pains.csv
+
+# Lead-like compounds with minimum QED 0.5
+smilesherlock filter --file library.csv --rules ro3 --qed-min 0.5 --output leads.csv
+```
+
+## Python API
 
 ```python
 from smilesherlock import lookup, lookup_file, download_structure, generate_structure, validate_smiles

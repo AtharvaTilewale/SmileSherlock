@@ -18,7 +18,10 @@ A high-performance, production-grade tool for SMILES validation, PubChem lookup,
 - **PubChem Lookup** - Search by SMILES, CID, Name, InChI, and InChIKey
 - **Rich Metadata** - Retrieve IUPAC name, molecular formula, mass, descriptors
 - **Structure Downloads** - Get 2D/3D SDF, MOL, PDB, and PNG formats from PubChem
-- **Offline Molecule Generation (--gen)** - Generate 2D and 3D conformations (SDF, MOL, PDB) offline from SMILES via RDKit with forcefield optimization
+- **Offline Molecule Generation (--gen)** - Generate 2D and 3D conformations (SDF, MOL, PDB) offline
+- **Molecular Fingerprints** *(v1.3.0)* - ECFP4, ECFP6, FCFP4, MACCS, RDKit, AtomPair, Torsion offline (`fingerprint` command)
+- **Similarity Search** *(v1.3.0)* - Tanimoto-based library search with threshold and top-N (`similar` command)
+- **Drug-Likeness Filtering** *(v1.3.0)* - Lipinski, Veber, Ghose, Egan, Ro3, PAINS, QED (`filter` command) from SMILES via RDKit with forcefield optimization
 - **Batch Processing** - Process hundreds of compounds with progress tracking
 - **Async/Multithreading** - Fast parallel downloads with retry logic
 - **Caching** - SQLite database for storing results locally

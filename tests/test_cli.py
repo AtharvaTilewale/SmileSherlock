@@ -1,5 +1,6 @@
-"""Tests for the Typer CLI application."""
+﻿"""Tests for the Typer CLI application."""
 
+from pathlib import Path
 from typer.testing import CliRunner
 from smilesherlock.cli.main import app
 
@@ -34,3 +35,61 @@ def test_app_lookup_compound_name():
     assert result.exit_code == 0
     assert "CC(=O)OC1=CC=CC=C1C(=O)O" in result.output
     assert "2244" in result.output
+
+
+def test_download_help_includes_gen():
+    """Test that download --help exposes the --gen option."""
+    result = runner.invoke(app, ["download", "--help"])
+    assert result.exit_code == 0
+    assert "--gen" in result.output or "-g" in result.output
+
+
+def test_download_gen_all_single_smiles(tmp_path: Path):
+    """Test download with --gen all for a single SMILES in 2D and 3D."""
+    out_dir = tmp_path / "structs"
+    
+    # 3D SDF
+    result = runner.invoke(app, ["download", "CCO", "--gen", "all", "--3d", "--format", "sdf", "-o", str(out_dir)])
+    assert result.exit_code == 0
+    assert "Successfully generated" in result.output
+
+    # 2D MOL
+    result = runner.invoke(app, ["download", "c1ccccc1", "--gen", "all", "--2d", "--format", "mol", "-o", str(out_dir)])
+    assert result.exit_code == 0
+    assert "Successfully generated" in result.output
+
+    # 3D PDB
+    result = runner.invoke(app, ["download", "CC(=O)O", "--gen", "all", "--3d", "--format", "pdb", "-o", str(out_dir)])
+    assert result.exit_code == 0
+    assert "Successfully generated" in result.output
+
+
+def test_download_gen_all_batch_file(tmp_path: Path):
+    """Test download with --gen all on a batch file of SMILES."""
+    smi_file = tmp_path / "compounds.smi"
+    smi_file.write_text("c1ccccc1\nCCO\nCC(=O)O\n", encoding="utf-8")
+    out_dir = tmp_path / "batch_out"
+
+    result = runner.invoke(app, ["download", "--file", str(smi_file), "--gen", "all", "--3d", "--format", "sdf", "-o", str(out_dir)])
+    assert result.exit_code == 0
+    assert "Batch processing complete" in result.output
+    assert "Generated:" in result.output
+
+
+def test_download_gen_missing_batch_file(tmp_path: Path):
+    """Test download with --gen missing generates structures not found in PubChem."""
+    smi_file = tmp_path / "compounds_missing.smi"
+    # c1ccccc1 is in PubChem, a custom hypothetical SMILES might not have 3D or CID
+    smi_file.write_text("c1ccccc1\nCC(C)(C)CC(=O)N1CCCCC1C(=O)O\n", encoding="utf-8")
+    out_dir = tmp_path / "batch_missing_out"
+
+    result = runner.invoke(app, ["download", "--file", str(smi_file), "--gen", "missing", "--3d", "--format", "sdf", "-o", str(out_dir)])
+    assert result.exit_code == 0
+    assert "Batch processing complete" in result.output
+
+
+def test_download_gen_invalid_mode():
+    """Test invalid --gen argument."""
+    result = runner.invoke(app, ["download", "CCO", "--gen", "invalid_mode"])
+    assert result.exit_code != 0
+    assert "Invalid value for --gen" in result.output

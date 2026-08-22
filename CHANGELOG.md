@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-23
+
+### Added
+- **`fingerprint` command** — Generate ECFP4, ECFP6, FCFP4, MACCS, RDKit, AtomPair, and Topological Torsion fingerprints from SMILES (offline, RDKit-based). Supports single compounds and batch file processing with CSV export.
+- **`similar` command** — Tanimoto-based similarity search: compare a query SMILES against a compound library file. Supports all fingerprint types, configurable threshold, and top-N ranking with optional CSV output.
+- **`filter` command** — Drug-likeness and ADMET evaluation with six rules: Lipinski Ro5, Veber oral bioavailability, Ghose filter, Egan passive permeability, Rule of Three (lead-like), PAINS alert detection. Also computes QED score. Supports `--fail` flag to invert selection and `--qed-min` threshold for batch filtering.
+- **New core module** `smilesherlock/core/cheminfo.py` with three public functions:
+  - `compute_fingerprint(smiles, fp_type, n_bits)` — returns `FingerprintResult` or `List[FingerprintResult]`
+  - `apply_filters(smiles, rules)` — returns `FilterResult` with per-rule `RuleResult` objects
+  - `compute_similarity(query_smiles, library, fp_type, n_bits, threshold, top_n)` — returns `List[SimilarityResult]`
+- **New Pydantic models**: `FingerprintResult`, `FilterResult`, `RuleResult`, `SimilarityResult` — all exported from the top-level package
+- 49 new unit tests in `tests/test_cheminfo.py` (77 total across the test suite, all passing)
+- Updated `docs/api_reference.md`, `docs/practical_guide.md` (Sections 6–8), `README.md`, and `docs/index.md`
+
+### Changed
+- Version bumped to `1.3.0`
+
 ## [1.2.0] - 2026-08-23
 
 ### Added

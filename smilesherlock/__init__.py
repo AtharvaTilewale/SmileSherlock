@@ -8,10 +8,18 @@ from smilesherlock.config import settings
 from smilesherlock.core.database import DatabaseManager
 from smilesherlock.core.pubchem import PubChemClient, PubChemCompound
 from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles, generate_structure
+from smilesherlock.core.cheminfo import (
+    FingerprintResult,
+    FilterResult,
+    SimilarityResult,
+    compute_fingerprint,
+    apply_filters,
+    compute_similarity,
+)
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 
@@ -134,7 +142,13 @@ __all__ = [
     "download_structure",
     "generate_structure",
     "validate_smiles",
+    "compute_fingerprint",
+    "apply_filters",
+    "compute_similarity",
     "SMILESValidationResult",
+    "FingerprintResult",
+    "FilterResult",
+    "SimilarityResult",
     "PubChemClient",
     "PubChemCompound",
     "DatabaseManager",

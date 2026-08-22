@@ -232,3 +232,167 @@ else:
 - **[API Documentation](https://smilesherlock.readthedocs.io/en/latest/)** — Python API reference
 - **[GitHub Issues](https://github.com/AtharvaTilewale/SmileSherlock/issues)** — Bug reports and feature requests
 - **[Discussions](https://github.com/AtharvaTilewale/SmileSherlock/discussions)** — Community support
+
+---
+
+# 6. Fingerprint Generation
+
+Generate molecular fingerprints offline from SMILES strings. Useful for ML model preparation, similarity search, and database indexing.
+
+## CLI
+
+```bash
+# Single compound - ECFP4 (default)
+smilesherlock fingerprint "CC(=O)OC1=CC=CC=C1C(=O)O" --type ecfp4
+
+# MACCS keys (167-bit)
+smilesherlock fingerprint "CCO" --type maccs
+
+# All fingerprint types at once
+smilesherlock fingerprint "CC(=O)OC1=CC=CC=C1C(=O)O" --type all
+
+# Batch file - save to CSV
+smilesherlock fingerprint --file compounds.smi --type ecfp4 --bits 2048 --output fingerprints.csv
+
+# Custom bit size
+smilesherlock fingerprint "CC(=O)OC1=CC=CC=C1C(=O)O" --type rdkit --bits 1024
+```
+
+**Supported fingerprint types:**
+
+| Type | Algorithm | Default Bits | Use Case |
+|------|-----------|-------------|----------|
+| `ecfp4` | Morgan (radius=2) | 2048 | General ML, virtual screening |
+| `ecfp6` | Morgan (radius=3) | 2048 | More specific substructures |
+| `fcfp4` | Feature Morgan (radius=2) | 2048 | Pharmacophore-based |
+| `maccs` | MACCS Keys | 167 (fixed) | Structural keys, scaffold analysis |
+| `rdkit` | Daylight-style RDKit | 2048 | General purpose |
+| `atompair` | Atom Pair | 2048 | 3D-aware searches |
+| `torsion` | Topological Torsion | 2048 | Conformer-sensitive searches |
+
+## Python API
+
+```python
+from smilesherlock import compute_fingerprint
+
+# Single fingerprint
+fp = compute_fingerprint("CC(=O)OC1=CC=CC=C1C(=O)O", fp_type="ecfp4")
+print(f"Type: {fp.fingerprint_type}, On bits: {fp.n_on_bits}, Density: {fp.density:.4f}")
+print(f"Bit string: {fp.bit_string}")
+
+# All fingerprint types
+fps = compute_fingerprint("CCO", fp_type="all")
+for fp in fps:
+    print(f"{fp.fingerprint_type:12s}: {fp.n_on_bits} bits on / {fp.n_bits}")
+```
+
+---
+
+# 7. Similarity Search
+
+Search a compound library to find structurally similar compounds using Tanimoto similarity.
+
+## CLI
+
+```bash
+# Search against a library file, default threshold 0.5, top 10
+smilesherlock similar "CC(=O)OC1=CC=CC=C1C(=O)O" --file library.smi
+
+# Custom threshold and top-N
+smilesherlock similar "CC(=O)OC1=CC=CC=C1C(=O)O" --file library.csv --threshold 0.3 --top 20
+
+# Use MACCS fingerprints instead of ECFP4
+smilesherlock similar "CCO" --file compounds.smi --fp-type maccs --top 5
+
+# Save results to CSV
+smilesherlock similar "CC(=O)OC1=CC=CC=C1C(=O)O" --file library.smi --output hits.csv
+
+# Higher bit resolution
+smilesherlock similar "CCO" --file library.smi --fp-type ecfp6 --bits 4096 --top 10
+```
+
+## Python API
+
+```python
+from smilesherlock import compute_similarity
+
+# Library as list of SMILES
+library = ["CCO", "CCCO", "CC(=O)OC1=CC=CC=C1C(=O)O", "c1ccccc1", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"]
+
+hits = compute_similarity(
+    query_smiles="CC(=O)OC1=CC=CC=C1C(=O)O",
+    library=library,
+    fp_type="ecfp4",
+    threshold=0.1,
+    top_n=5,
+)
+
+for hit in hits:
+    print(f"Rank {hit.rank}: {hit.hit} (Tanimoto={hit.similarity:.4f})")
+```
+
+---
+
+# 8. Drug-Likeness Filtering (ADMET)
+
+Evaluate compounds against standard drug-likeness rules and PAINS alerts.
+
+## CLI
+
+```bash
+# Single compound - all rules (default)
+smilesherlock filter "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+# Specific rules only
+smilesherlock filter "CC(=O)OC1=CC=CC=C1C(=O)O" --rules lipinski,veber,pains
+
+# Batch: keep only compounds that pass all rules
+smilesherlock filter --file compounds.csv --rules lipinski --output drug_like.csv
+
+# Batch: keep only PAINS-free compounds (--rules pains keeps clean ones)
+smilesherlock filter --file compounds.csv --rules pains --output no_pains.csv
+
+# Batch: keep only PAINS-flagged compounds for investigation (--fail inverts)
+smilesherlock filter --file compounds.csv --rules pains --fail --output pains_hits.csv
+
+# Add QED minimum threshold
+smilesherlock filter --file compounds.csv --rules lipinski,veber --qed-min 0.5 --output output.csv
+```
+
+**Available filter rules:**
+
+| Rule | Criteria | Use Case |
+|------|----------|----------|
+| `lipinski` | MW<=500, LogP<=5, HBD<=5, HBA<=10 | Oral drug candidates |
+| `veber` | RotBonds<=10, TPSA<=140 A^2 | Oral bioavailability |
+| `ghose` | MW 160-480, LogP -0.4 to 5.6, Atoms 20-70, MR 40-130 | Drug-like space |
+| `egan` | TPSA<=131.6, LogP<=5.88 | Passive permeability |
+| `ro3` | MW<=300, LogP<=3, HBD<=3, HBA<=3 | Lead-like fragments |
+| `pains` | RDKit PAINS catalog | Frequent hitter detection |
+| `qed` | 0-1 score (info only) | Overall drug-likeness score |
+
+## Python API
+
+```python
+from smilesherlock import apply_filters
+
+# All rules at once
+result = apply_filters("CC(=O)OC1=CC=CC=C1C(=O)O")
+
+print(f"MW:  {result.molecular_weight:.2f} g/mol")
+print(f"LogP: {result.logp:.2f}")
+print(f"QED:  {result.qed_score:.4f}")
+print(f"Lipinski: {'PASS' if result.lipinski.passed else 'FAIL'} — {result.lipinski.details}")
+print(f"PAINS:    {'PASS' if result.pains.passed else 'FAIL'} — {result.pains.details}")
+print(f"Overall:  {'PASS' if result.passes_all else 'FAIL'}")
+
+# Specific rules only
+result = apply_filters("CC(=O)OC1=CC=CC=C1C(=O)O", rules=["lipinski", "pains"])
+
+# Batch filtering
+import csv
+
+library = ["CC(=O)OC1=CC=CC=C1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "c1ccccc1"]
+passing = [smi for smi in library if apply_filters(smi, rules=["lipinski"]).passes_all]
+print(f"Drug-like compounds: {len(passing)}/{len(library)}")
+```
