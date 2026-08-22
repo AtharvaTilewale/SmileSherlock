@@ -12,8 +12,10 @@ def test_app_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert "SmileSherlock" in result.output
-    assert "License: MIT" in result.output
+    assert "License:" in result.output
+    assert "MIT" in result.output
     assert "Repository:" in result.output
+    assert "AtharvaTilewale/SmileSherlock" in result.output
 
 def test_app_status():
     """Test the status command."""
@@ -93,3 +95,19 @@ def test_download_gen_invalid_mode():
     result = runner.invoke(app, ["download", "CCO", "--gen", "invalid_mode"])
     assert result.exit_code != 0
     assert "Invalid value for --gen" in result.output
+
+def test_app_update_help():
+    """Test update --help."""
+    result = runner.invoke(app, ["update", "--help"])
+    assert result.exit_code == 0
+    assert "Check for a newer version" in result.output
+    assert "--check" in result.output
+    assert "--yes" in result.output
+
+
+def test_detect_install_source():
+    """Test install source detector helper."""
+    from smilesherlock.cli.main import _detect_install_source
+    source_type, detail = _detect_install_source()
+    assert source_type in ["git_repo", "git_pip", "pip"]
+    assert detail is not None

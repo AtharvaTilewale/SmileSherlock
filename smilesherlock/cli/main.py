@@ -7,6 +7,9 @@ import hashlib
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich.align import Align
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from smilesherlock import (
@@ -30,12 +33,38 @@ console = Console()
 def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
-        console.print(
-            f"[bold blue]SmileSherlock[/bold blue] version [green]{__version__}[/green]\n"
-            f"[dim]High-performance SMILES validation and PubChem lookup[/dim]\n"
-            f"[dim]License: MIT | Repository: https://github.com/AtharvaTilewale/SmileSherlock[/dim]"
-        )
+        _print_version_panel()
         raise typer.Exit()
+
+
+def _print_version_panel() -> None:
+    """Render the version info panel."""
+    body = Text()
+    body.append("\n")
+    body.append("  SmileSherlock", style="bold bright_cyan")
+    body.append(f"  v{__version__}", style="bold bright_green")
+    body.append("\n")
+    body.append("  High-performance SMILES validation, property calculation,\n", style="dim white")
+    body.append("  and PubChem lookup tool for cheminformatics.\n", style="dim white")
+    body.append("\n")
+    body.append("  License:     ", style="white")
+    body.append("MIT", style="bold white")
+    body.append("\n")
+    body.append("  Author:      ", style="white")
+    body.append("Atharva Tilewale", style="bold white")
+    body.append("\n")
+    body.append("  Repository:  ", style="white")
+    body.append("https://github.com/AtharvaTilewale/SmileSherlock", style="bold bright_blue underline")
+    body.append("\n")
+    body.append("  PyPI:        ", style="white")
+    body.append("https://pypi.org/project/SmileSherlock", style="bold cyan underline")
+    body.append("\n")
+    panel = Panel(
+        body,
+        border_style="bright_cyan",
+        padding=(0, 2),
+    )
+    console.print(panel)
 
 
 @app.callback()
@@ -868,6 +897,234 @@ def filter_cmd(
                 writer.writeheader()
                 writer.writerows(rows)
         console.print(f"[green]Results saved to[/green]: [cyan]{output}[/cyan]")
+
+
+
+# =============================================================================
+# update command
+# =============================================================================
+
+def _detect_install_source() -> tuple[str, str]:
+    """Detect whether SmileSherlock was installed from GitHub (repo / git+url) or PyPI (pip).
+
+    Returns:
+        tuple (source_type, detail_str)
+        source_type: 'git_repo' | 'git_pip' | 'pip'
+    """
+    import importlib.metadata
+    import json
+    import subprocess
+    import smilesherlock
+
+    GITHUB_REPO_URL = "https://github.com/AtharvaTilewale/SmileSherlock.git"
+
+    # 1. Check PEP 610 direct_url.json
+    try:
+        dist = importlib.metadata.distribution("SmileSherlock")
+        direct_url_raw = dist.read_text("direct_url.json")
+        if direct_url_raw:
+            info = json.loads(direct_url_raw)
+            url = info.get("url", "")
+            if "vcs_info" in info or "github.com" in url:
+                return "git_pip", f"git+{GITHUB_REPO_URL}"
+            if info.get("dir_info", {}).get("editable", False) and url.startswith("file://"):
+                local_dir = Path(url.replace("file:///", "").replace("file://", ""))
+                if (local_dir / ".git").exists():
+                    return "git_repo", str(local_dir)
+    except Exception:
+        pass
+
+    # 2. Check if running inside a Git repository work-tree
+    try:
+        pkg_root = Path(smilesherlock.__file__).resolve().parent
+        for candidate in [pkg_root, pkg_root.parent, pkg_root.parent.parent]:
+            if (candidate / ".git").exists():
+                return "git_repo", str(candidate)
+            try:
+                res = subprocess.run(
+                    ["git", "-C", str(candidate), "rev-parse", "--show-toplevel"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                if res.returncode == 0 and res.stdout.strip():
+                    return "git_repo", res.stdout.strip()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # 3. Default to PyPI / pip
+    return "pip", "PyPI"
+
+
+@app.command(name="update")
+def update_cmd(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt and upgrade immediately"),
+    check: bool = typer.Option(False, "--check", "-c", help="Only check for updates, do not install"),
+) -> None:
+    """Check for a newer version of SmileSherlock and optionally upgrade.
+
+    Automatically detects whether SmileSherlock was installed from GitHub or PyPI,
+    and uses the appropriate upgrade method (git pull / pip install git+ / pip install).
+    """
+    import subprocess
+    import json
+    import urllib.request
+    import urllib.error
+    from packaging.version import Version
+
+    source_type, source_detail = _detect_install_source()
+    source_label = "GitHub (local clone)" if source_type == "git_repo" else ("GitHub (git+url)" if source_type == "git_pip" else "PyPI (pip)")
+
+    PYPI_URL = "https://pypi.org/pypi/SmileSherlock/json"
+
+    with console.status(f"[bold green]Checking for latest version (installed from {source_label})...[/bold green]"):
+        try:
+            with urllib.request.urlopen(PYPI_URL, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            latest_version = data["info"]["version"]
+        except urllib.error.URLError as e:
+            console.print(f"[red]Network error:[/red] Could not reach PyPI. Check your connection.\n{e}")
+            raise typer.Exit(code=1)
+        except Exception as e:
+            console.print(f"[red]Error fetching version info:[/red] {e}")
+            raise typer.Exit(code=1)
+
+    try:
+        current = Version(__version__)
+        latest = Version(latest_version)
+    except Exception:
+        current_str = __version__
+        latest_str = latest_version
+        up_to_date = current_str == latest_str
+    else:
+        up_to_date = current >= latest
+
+    # Build info panel
+    body = Text()
+    body.append("\n")
+    body.append("  Installed: ", style="white")
+    body.append(f"v{__version__}", style="bold bright_green" if up_to_date else "bold yellow")
+    body.append("\n")
+    body.append("  Source:    ", style="white")
+    body.append(f"{source_label}", style="bold bright_cyan")
+    body.append("\n")
+    body.append("  Latest:    ", style="white")
+    body.append(f"v{latest_version}", style="bold bright_green")
+    body.append("\n")
+
+    if up_to_date:
+        body.append("\n")
+        body.append("  You are up to date!", style="bold bright_green")
+        body.append("\n")
+        panel = Panel(
+            body,
+            title="[bold bright_cyan]SmileSherlock Update Check[/bold bright_cyan]",
+            border_style="bright_green",
+            padding=(0, 2),
+        )
+        console.print(panel)
+    else:
+        body.append("\n")
+        body.append("  A new version is available: ", style="white")
+        body.append(f"v{latest_version}", style="bold bright_cyan")
+        body.append("\n")
+        body.append("  Repository: ", style="white")
+        body.append("https://github.com/AtharvaTilewale/SmileSherlock", style="bold bright_blue underline")
+        body.append("\n")
+        panel = Panel(
+            body,
+            title="[bold bright_cyan]SmileSherlock Update Check[/bold bright_cyan]",
+            border_style="yellow",
+            padding=(0, 2),
+        )
+        console.print(panel)
+
+        if check:
+            console.print("\n[dim]Run [white]smilesherlock update[/white] to upgrade.[/dim]")
+            raise typer.Exit()
+
+        # Prompt or auto-confirm
+        if not yes:
+            do_upgrade = typer.confirm(
+                f"\nUpgrade from v{__version__} to v{latest_version} via {source_label}?",
+                default=True,
+            )
+        else:
+            do_upgrade = True
+
+        if do_upgrade:
+            console.print(f"\n[bold green]Upgrading SmileSherlock from {source_label}...[/bold green]")
+
+            if source_type == "git_repo":
+                # Upgrade via git pull in repo directory
+                repo_path = source_detail
+                console.print(f"[dim]Running git pull in {repo_path}...[/dim]")
+                try:
+                    result = subprocess.run(
+                        ["git", "-C", repo_path, "pull", "origin", "main"],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode != 0:
+                        # try fallback to default pull
+                        result = subprocess.run(
+                            ["git", "-C", repo_path, "pull"],
+                            capture_output=True,
+                            text=True,
+                        )
+                    if result.returncode == 0:
+                        console.print(f"[bold bright_green]Successfully pulled latest changes from GitHub![/bold bright_green]")
+                        console.print(f"[dim]{result.stdout.strip()}[/dim]")
+                    else:
+                        console.print(f"[red]git pull failed with code {result.returncode}[/red]")
+                        if result.stderr:
+                            console.print(f"[dim]{result.stderr.strip()}[/dim]")
+                except FileNotFoundError:
+                    console.print("[red]Error:[/red] git command not found. Please pull updates manually:")
+                    console.print(f"  [bold white]cd {repo_path} && git pull[/bold white]")
+
+            elif source_type == "git_pip":
+                # Upgrade via pip git URL
+                git_url = "git+https://github.com/AtharvaTilewale/SmileSherlock.git"
+                console.print(f"[dim]Running pip install --upgrade {git_url}...[/dim]")
+                try:
+                    result = subprocess.run(
+                        ["pip", "install", "--upgrade", git_url],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        console.print(f"[bold bright_green]Successfully upgraded from GitHub to v{latest_version}![/bold bright_green]")
+                    else:
+                        console.print(f"[red]pip exited with code {result.returncode}[/red]")
+                        if result.stderr:
+                            console.print(f"[dim]{result.stderr.strip()}[/dim]")
+                except FileNotFoundError:
+                    console.print("[red]Error:[/red] pip not found. Upgrade manually with:")
+                    console.print(f"  [bold white]pip install --upgrade {git_url}[/bold white]")
+
+            else:
+                # Upgrade via PyPI
+                console.print("[dim]Running pip install --upgrade SmileSherlock...[/dim]")
+                try:
+                    result = subprocess.run(
+                        ["pip", "install", "--upgrade", "SmileSherlock"],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        console.print(f"[bold bright_green]Successfully upgraded from PyPI to v{latest_version}![/bold bright_green]")
+                    else:
+                        console.print(f"[red]pip exited with code {result.returncode}[/red]")
+                        if result.stderr:
+                            console.print(f"[dim]{result.stderr.strip()}[/dim]")
+                except FileNotFoundError:
+                    console.print("[red]Error:[/red] pip not found. Upgrade manually with:")
+                    console.print("  [bold white]pip install --upgrade SmileSherlock[/bold white]")
+        else:
+            console.print("[dim]Upgrade cancelled.[/dim]")
 
 
 if __name__ == "__main__":
