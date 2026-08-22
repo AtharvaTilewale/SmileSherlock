@@ -1,4 +1,4 @@
-﻿"""SmileSherlock CLI Application."""
+"""SmileSherlock CLI Application."""
 
 from pathlib import Path
 from typing import Optional

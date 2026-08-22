@@ -1,4 +1,4 @@
-﻿"""SMILES validation, property calculation, and 2D/3D structure generation using RDKit."""
+"""SMILES validation, property calculation, and 2D/3D structure generation using RDKit."""
 
 from pathlib import Path
 from typing import Optional, Union

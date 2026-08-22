@@ -1,4 +1,4 @@
-﻿# API Reference
+# API Reference
 
 This page details the core public functions and data models exposed by the `smilesherlock` package. All core functions can be imported directly from the top-level package.
 

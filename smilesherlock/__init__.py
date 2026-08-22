@@ -1,4 +1,4 @@
-﻿"""SmileSherlock: High-performance SMILES validation and PubChem lookup."""
+"""SmileSherlock: High-performance SMILES validation and PubChem lookup."""
 
 from pathlib import Path
 from typing import Optional, Union, List, Callable, Dict

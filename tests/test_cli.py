@@ -1,11 +1,13 @@
-﻿"""Tests for the Typer CLI application."""
+"""Tests for the Typer CLI application."""
 
 from pathlib import Path
+import pytest
 from typer.testing import CliRunner
 from smilesherlock.cli.main import app
 
 # Initialize without the invalid mix_stderr argument
 runner = CliRunner() 
+
 
 def test_app_version():
     """Test the version flag."""
@@ -17,6 +19,7 @@ def test_app_version():
     assert "Repository:" in result.output
     assert "AtharvaTilewale/SmileSherlock" in result.output
 
+
 def test_app_status():
     """Test the status command."""
     result = runner.invoke(app, ["status"])
@@ -25,14 +28,17 @@ def test_app_status():
     assert "Configuration" in result.output
     assert "Cache Dir" in result.output
 
+
 def test_app_lookup_missing_argument():
     """Test lookup command fails gracefully when missing query."""
     result = runner.invoke(app, ["lookup"])
     assert result.exit_code != 0
     assert "Missing argument" in result.output
 
+
+@pytest.mark.integration
 def test_app_lookup_compound_name():
-    """Test lookup command for compound name returns SMILES."""
+    """Test lookup command for compound name returns SMILES (requires network)."""
     result = runner.invoke(app, ["lookup", "aspirin"])
     assert result.exit_code == 0
     assert "CC(=O)OC1=CC=CC=C1C(=O)O" in result.output
@@ -78,10 +84,10 @@ def test_download_gen_all_batch_file(tmp_path: Path):
     assert "Generated:" in result.output
 
 
+@pytest.mark.integration
 def test_download_gen_missing_batch_file(tmp_path: Path):
-    """Test download with --gen missing generates structures not found in PubChem."""
+    """Test download with --gen missing generates structures not found in PubChem (requires network)."""
     smi_file = tmp_path / "compounds_missing.smi"
-    # c1ccccc1 is in PubChem, a custom hypothetical SMILES might not have 3D or CID
     smi_file.write_text("c1ccccc1\nCC(C)(C)CC(=O)N1CCCCC1C(=O)O\n", encoding="utf-8")
     out_dir = tmp_path / "batch_missing_out"
 
@@ -95,6 +101,7 @@ def test_download_gen_invalid_mode():
     result = runner.invoke(app, ["download", "CCO", "--gen", "invalid_mode"])
     assert result.exit_code != 0
     assert "Invalid value for --gen" in result.output
+
 
 def test_app_update_help():
     """Test update --help."""

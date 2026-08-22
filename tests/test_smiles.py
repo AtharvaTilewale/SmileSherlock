@@ -1,4 +1,4 @@
-﻿"""Tests for SMILES validation and RDKit descriptors and structure generation."""
+"""Tests for SMILES validation and RDKit descriptors and structure generation."""
 
 from pathlib import Path
 from smilesherlock.core.smiles import validate_smiles, generate_structure
