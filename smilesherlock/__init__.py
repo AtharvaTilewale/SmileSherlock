@@ -1,4 +1,4 @@
-"""SmileSherlock: High-performance SMILES validation and PubChem lookup."""
+﻿"""SmileSherlock: High-performance SMILES validation and PubChem lookup."""
 
 from pathlib import Path
 from typing import Optional, Union, List, Callable, Dict
@@ -7,7 +7,7 @@ import concurrent.futures
 from smilesherlock.config import settings
 from smilesherlock.core.database import DatabaseManager
 from smilesherlock.core.pubchem import PubChemClient, PubChemCompound
-from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles
+from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles, generate_structure
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
@@ -132,6 +132,7 @@ __all__ = [
     "lookup_by_name",
     "lookup_file",
     "download_structure",
+    "generate_structure",
     "validate_smiles",
     "SMILESValidationResult",
     "PubChemClient",
