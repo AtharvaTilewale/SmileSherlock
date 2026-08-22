@@ -54,20 +54,25 @@ def lookup_by_name(name: str, use_cache: bool = True) -> Optional[PubChemCompoun
     Returns:
         PubChemCompound object or None if not found
     """
+    name_str = str(name).strip()
     db = DatabaseManager() if use_cache else None
     
     if use_cache:
-        # Check database first
-        cached = db.get_compound(name)
+        db.init_db()
+        cached = db.get_cached_compound(name_str)
         if cached:
             return cached
             
     # Fetch from PubChem
     client = PubChemClient()
-    result = client.lookup_by_name(name)
+    result = client.lookup_by_name(name_str)
     
-    if result and use_cache:
-        db.save_compound(result)
+    if result and use_cache and result:
+        db.cache_compound(name_str, result)
+        if result.canonical_smiles:
+            db.cache_compound(result.canonical_smiles, result)
+        if result.cid:
+            db.cache_compound(str(result.cid), result)
         
     return result
 

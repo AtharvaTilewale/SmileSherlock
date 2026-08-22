@@ -13,6 +13,7 @@ def test_pubchem_lookup_valid():
     assert compound.cid == 241
     assert compound.molecular_formula == "C6H6"
     assert compound.iupac_name.lower() == "benzene"
+    assert compound.canonical_smiles is not None
 
 @pytest.mark.integration
 def test_pubchem_lookup_invalid():
@@ -30,3 +31,14 @@ def test_pubchem_lookup_by_cid():
     assert compound is not None
     assert compound.cid == 2244
     assert compound.iupac_name.lower() == "2-acetyloxybenzoic acid"
+    assert compound.canonical_smiles == "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+@pytest.mark.integration
+def test_pubchem_lookup_by_name():
+    """Test live PubChem lookup by compound name."""
+    client = PubChemClient()
+    compound = client.lookup_by_name("aspirin")
+    
+    assert compound is not None
+    assert compound.cid == 2244
+    assert compound.canonical_smiles == "CC(=O)OC1=CC=CC=C1C(=O)O"

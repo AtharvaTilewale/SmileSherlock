@@ -15,7 +15,7 @@ from smilesherlock.config import Settings
 @pytest.fixture
 def temp_cache_dir() -> Path:
     """Provide a temporary cache directory for testing."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         yield Path(tmpdir)
 
 

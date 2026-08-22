@@ -27,3 +27,10 @@ def test_app_lookup_missing_argument():
     result = runner.invoke(app, ["lookup"])
     assert result.exit_code != 0
     assert "Missing argument" in result.output
+
+def test_app_lookup_compound_name():
+    """Test lookup command for compound name returns SMILES."""
+    result = runner.invoke(app, ["lookup", "aspirin"])
+    assert result.exit_code == 0
+    assert "CC(=O)OC1=CC=CC=C1C(=O)O" in result.output
+    assert "2244" in result.output

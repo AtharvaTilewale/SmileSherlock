@@ -54,7 +54,7 @@ class PubChemClient:
         # Define properties we want to fetch for every compound
         self.properties = (
             "Title,MolecularFormula,MolecularWeight,CanonicalSMILES,"
-            "IsomericSMILES,InChI,InChIKey,IUPACName,XLogP,"
+            "IsomericSMILES,ConnectivitySMILES,SMILES,InChI,InChIKey,IUPACName,XLogP,"
             "HBondDonorCount,HBondAcceptorCount"
         )
         
@@ -110,6 +110,18 @@ class PubChemClient:
             # Usually we only care about the first (best) match returned
             prop = properties[0]
             
+            canonical_smiles = (
+                prop.get("CanonicalSMILES")
+                or prop.get("SMILES")
+                or prop.get("ConnectivitySMILES")
+            )
+            isomeric_smiles = (
+                prop.get("IsomericSMILES")
+                or prop.get("SMILES")
+                or prop.get("CanonicalSMILES")
+                or prop.get("ConnectivitySMILES")
+            )
+
             return PubChemCompound(
                 input_query=str(input_query),
                 cid=prop.get("CID"),
@@ -117,8 +129,8 @@ class PubChemClient:
                 iupac_name=prop.get("IUPACName"),
                 molecular_formula=prop.get("MolecularFormula"),
                 molecular_weight=prop.get("MolecularWeight"),
-                canonical_smiles=prop.get("CanonicalSMILES"),
-                isomeric_smiles=prop.get("IsomericSMILES"),
+                canonical_smiles=canonical_smiles,
+                isomeric_smiles=isomeric_smiles,
                 inchikey=prop.get("InChIKey"),
                 inchi=prop.get("InChI"),
                 xlogp=prop.get("XLogP"),

@@ -2,7 +2,7 @@
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -66,7 +66,11 @@ class DatabaseManager:
                 row = cursor.fetchone()
                 if row and row["data_json"]:
                     data = json.loads(row["data_json"])
-                    return PubChemCompound(**data)
+                    compound = PubChemCompound(**data)
+                    # Self-healing: if cached compound has a CID but missing canonical_smiles, treat as miss
+                    if compound.canonical_smiles is None and compound.cid is not None:
+                        return None
+                    return compound
         except Exception as e:
             logger.error(f"Cache lookup failed for '{query_key}': {e}")
         return None
@@ -98,7 +102,7 @@ class DatabaseManager:
                         compound.inchi,
                         compound.inchikey,
                         json.dumps(data_dict),
-                        datetime.utcnow().isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
                     ),
                 )
                 conn.commit()
