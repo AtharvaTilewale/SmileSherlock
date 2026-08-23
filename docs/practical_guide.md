@@ -405,3 +405,95 @@ library = ["CC(=O)OC1=CC=CC=C1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "c1ccccc1
 passing = [smi for smi in library if apply_filters(smi, rules=["lipinski"]).passes_all]
 print(f"Drug-like compounds: {len(passing)}/{len(library)}")
 ```
+
+---
+
+## Standardization Pipeline
+
+Clean up "dirty" SMILES from databases using RDKit's MolStandardize:
+
+```bash
+# Single compound: strip salts, neutralize, canonicalize tautomers
+smilesherlock standardize "[Na+].[OH-].CC(=O)[O-]"
+# Output: CC(=O)O
+
+# Show exactly what each step changed
+smilesherlock standardize "[Na+].[OH-].CC(=O)[O-]" --show-diff
+
+# Apply only specific steps
+smilesherlock standardize "O=C([O-])c1ccccc1" --steps neutralize,canonical
+
+# Batch process a CSV file
+smilesherlock standardize --file compounds.csv --output standardized.csv --show-diff
+```
+
+**Available steps** (applied in order):
+
+| Step | Description |
+|------|-------------|
+| `fragment` | Salt stripping — keeps the largest organic fragment |
+| `neutralize` | Neutralizes charged atoms (e.g., carboxylate → carboxylic acid) |
+| `tautomer` | Canonicalize tautomers to a single stable form |
+| `canonical` | Generate canonical RDKit SMILES string |
+
+### Python API
+
+```python
+from smilesherlock import standardize_smiles
+
+result = standardize_smiles("[Na+].[OH-].CC(=O)[O-]")
+print(result.output_smiles)   # CC(=O)O
+print(result.changed)         # True
+
+# Inspect per-step changes
+for step in result.step_results:
+    if step.changed:
+        print(f"{step.step}: {step.input_smiles} -> {step.output_smiles}")
+
+# Custom pipeline
+result = standardize_smiles("O=C([O-])c1ccccc1", steps=["neutralize", "canonical"])
+```
+
+---
+
+## IUPAC Identifier Generation
+
+Generate systematic identifiers from SMILES, fully offline.
+
+```bash
+# Offline: InChI, InChIKey, Formula, MW
+smilesherlock iupacname "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+# With IUPAC preferred name (fetched from PubChem on first use, then cached offline)
+smilesherlock iupacname "CCO" --online
+
+# Batch processing
+smilesherlock iupacname --file compounds.smi --online --output identifiers.csv
+```
+
+| Output | Source | Requires Network? |
+|--------|--------|-------------------|
+| Canonical SMILES | RDKit | No |
+| Molecular Formula | RDKit | No |
+| Exact MW | RDKit | No |
+| InChI | RDKit | No |
+| InChIKey | RDKit | No |
+| IUPAC Name | PubChem (cached) | First time only |
+
+### Python API
+
+```python
+from smilesherlock import get_iupac_name
+
+# Fully offline — InChI, formula, MW
+result = get_iupac_name("CCO")
+print(result.inchi)        # InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3
+print(result.inchikey)     # LFQSCWFLJHTTHZ-UHFFFAOYSA-N
+print(result.molecular_formula)  # C2H6O
+print(result.molecular_weight)   # 46.0419
+
+# Fetch IUPAC name (network on first call, cache thereafter)
+result = get_iupac_name("CCO", use_online=True)
+print(result.iupac_name)   # ethanol
+print(result.iupac_name_source)  # pubchem (or 'cache' on repeat calls)
+```

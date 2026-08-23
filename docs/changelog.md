@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-23
+
+### Added
+- **`standardize` command** - Full offline SMILES standardization pipeline using RDKit `MolStandardize`:
+  - **Salt stripping** (`fragment` step): Keeps the largest organic fragment, removes counterions/salts.
+  - **Neutralization** (`neutralize` step): Neutralizes charged atoms (e.g., carboxylates -> carboxylic acids).
+  - **Tautomer canonicalization** (`tautomer` step): Normalizes tautomers to a single canonical form.
+  - **Canonical SMILES** (`canonical` step): Outputs canonical RDKit SMILES.
+  - `--steps`: Choose individual steps (e.g., `--steps fragment,neutralize`) or `all` (default).
+  - `--show-diff`: Step-by-step breakdown showing exactly what changed at each stage.
+  - `--file` / `--output`: Batch CSV/SMI processing with CSV output.
+- **`iupacname` command** - Systematic IUPAC identifier generation from SMILES:
+  - **Fully offline**: InChI, InChIKey, Molecular Formula, Exact MW — always computed locally via RDKit.
+  - **PubChem IUPAC name** (`--online`): Fetches the preferred IUPAC name from PubChem REST API.
+  - **Local SQLite caching**: After a first `--online` lookup, subsequent calls return the cached name offline.
+  - `--file` / `--output`: Batch CSV/SMI processing with CSV output.
+- New public API exports: `standardize_smiles`, `StandardizeResult`, `StepResult`, `STANDARDIZE_STEPS`,
+  `get_iupac_name`, `IUPACResult`
+
+### Tests
+- Added `tests/test_standardize_iupac.py` with 33 tests (31 offline, 2 integration).
+- Total: 107 offline tests passing (+ 10 integration tests).
+
 ## [1.3.0] - 2026-08-23
 
 ### Added

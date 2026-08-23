@@ -8,6 +8,16 @@ from smilesherlock.config import settings
 from smilesherlock.core.database import DatabaseManager
 from smilesherlock.core.pubchem import PubChemClient, PubChemCompound
 from smilesherlock.core.smiles import SMILESValidationResult, validate_smiles, generate_structure
+from smilesherlock.core.standardize import (
+    StandardizeResult,
+    StepResult,
+    standardize_smiles,
+    VALID_STEPS as STANDARDIZE_STEPS,
+)
+from smilesherlock.core.iupacname import (
+    IUPACResult,
+    get_iupac_name,
+)
 from smilesherlock.core.cheminfo import (
     FingerprintResult,
     FilterResult,
@@ -19,7 +29,7 @@ from smilesherlock.core.cheminfo import (
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 

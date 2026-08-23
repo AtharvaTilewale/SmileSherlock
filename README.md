@@ -166,6 +166,73 @@ For complete tutorials and advanced usage examples, see the **[Practical Guide](
 
 For configuration and architecture details, see the **[Configuration & Architecture](https://github.com/AtharvaTilewale/SmileSherlock/blob/main/docs/configuration.md)** page.
 
+
+## Standardization Pipeline
+
+Clean up "dirty" SMILES: strip salts, neutralize charges, canonicalize tautomers.
+Fully **offline** — powered by RDKit `MolStandardize`.
+
+```bash
+# Strip salt, neutralize, and canonicalize in one go
+smilesherlock standardize "[Na+].[OH-].CC(=O)[O-]"
+# Output: CC(=O)O
+
+# Show step-by-step diff
+smilesherlock standardize "[Na+].[OH-].CC(=O)[O-]" --show-diff
+
+# Custom steps
+smilesherlock standardize "O=C([O-])c1ccccc1" --steps neutralize,canonical
+
+# Batch from CSV
+smilesherlock standardize --file dirty.csv --output clean.csv
+```
+
+### Python API
+
+```python
+from smilesherlock import standardize_smiles
+
+result = standardize_smiles("[Na+].[OH-].CC(=O)[O-]")
+print(result.output_smiles)    # CC(=O)O
+print(result.changed)          # True
+
+# Inspect what changed per step
+for s in result.step_results:
+    if s.changed:
+        print(f"{s.step}: {s.input_smiles} -> {s.output_smiles}")
+```
+
+---
+
+## IUPAC Identifier Generation
+
+Generate InChI, InChIKey, formula, MW offline. Fetch IUPAC systematic name via PubChem with local caching.
+
+```bash
+# Offline: InChI, InChIKey, formula, MW
+smilesherlock iupacname "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+# With IUPAC name from PubChem (cached after first fetch)
+smilesherlock iupacname "CCO" --online
+
+# Batch
+smilesherlock iupacname --file compounds.smi --online --output identifiers.csv
+```
+
+### Python API
+
+```python
+from smilesherlock import get_iupac_name
+
+result = get_iupac_name("CCO", use_online=True)
+print(result.inchi)              # InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3
+print(result.inchikey)           # LFQSCWFLJHTTHZ-UHFFFAOYSA-N
+print(result.molecular_formula)  # C2H6O
+print(result.iupac_name)         # ethanol
+print(result.iupac_name_source)  # pubchem (or 'cache' on repeat calls)
+```
+
+---
 ## Contributing
 
 Contributions are welcome! Please:
@@ -192,7 +259,7 @@ If you use SmileSherlock in your research, please cite:
   doi={10.5281/zenodo.22062020},
   month={8},
   title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
-  version={1.3.0},
+  version={1.4.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
