@@ -21,6 +21,15 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 - [4. Chemical Structure Downloads](#4-chemical-structure-downloads)
   - [Python API Examples](#python-api-examples-2)
 - [5. Advanced SMILES Validation (Python API)](#5-advanced-smiles-validation-python-api)
+- [6. Molecular Fingerprinting](#6-molecular-fingerprinting)
+  - [CLI Examples](#cli-examples-2)
+  - [Python API Examples](#python-api-examples-3)
+- [7. Chemical Similarity Search](#7-chemical-similarity-search)
+  - [CLI Examples](#cli-examples-3)
+  - [Python API Examples](#python-api-examples-4)
+- [8. Chemical Structure Filtering](#8-chemical-structure-filtering)
+  - [CLI Examples](#cli-examples-4)
+  - [Python API Examples](#python-api-examples-5)
 - [Learn More](#learn-more)
 
 ---

@@ -149,8 +149,10 @@ If you use SmileSherlock in your research, please cite:
 ```bibtex
 @software{smilesherlock2026,
   author={Atharva Tilewale},
-  title={SmileSherlock: High-performance SMILES validation and PubChem lookup},
-  version={1.2.0},
+  doi={10.5281/zenodo.22062020},
+  month={8},
+  title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
+  version={1.3.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }
