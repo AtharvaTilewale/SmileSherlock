@@ -1,4 +1,4 @@
-# SmileSherlock Practical Guide (v1.1.0)
+# SmileSherlock Practical Guide (v1.4.0)
 
 Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is designed to take you from basic lookups to advanced, multithreaded batch processing using both the Command Line Interface (CLI) and the Python API.
 
@@ -6,7 +6,7 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 
 # Table of Contents
 
-- [SmileSherlock Practical Guide (v1.1.0)](#smilesherlock-practical-guide-v110)
+- [SmileSherlock Practical Guide (v1.4.0)](#smilesherlock-practical-guide-v110)
 - [Table of Contents](#table-of-contents)
 - [1. System Management](#1-system-management)
     - [CLI Commands](#cli-commands)
@@ -30,6 +30,10 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 - [8. Drug-Likeness Filtering (ADMET)](#8-drug-likeness-filtering-admet)
   - [CLI Examples](#cli)
   - [Python API Examples](#python-api)
+- [9. Standardization Pipeline](#9-standardization-pipeline)
+  - [Python API](#python-api-1)
+- [10. IUPAC Identifier Generation](#10-iupac-identifier-generation)
+  - [Python API](#python-api-2)
 - [Learn More](#learn-more)
 
 ---
@@ -408,7 +412,7 @@ print(f"Drug-like compounds: {len(passing)}/{len(library)}")
 
 ---
 
-## Standardization Pipeline
+# 9. Standardization Pipeline
 
 Clean up "dirty" SMILES from databases using RDKit's MolStandardize:
 
@@ -456,7 +460,7 @@ result = standardize_smiles("O=C([O-])c1ccccc1", steps=["neutralize", "canonical
 
 ---
 
-## IUPAC Identifier Generation
+# 10. IUPAC Identifier Generation
 
 Generate systematic identifiers from SMILES, fully offline.
 
