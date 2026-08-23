@@ -256,7 +256,7 @@ If you use SmileSherlock in your research, please cite:
 ```bibtex
 @software{smilesherlock2026,
   author={Atharva Tilewale},
-  doi={10.5281/zenodo.22062020},
+  doi={10.5281/zenodo.22065365},
   month={8},
   title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
   version={1.4.0},
