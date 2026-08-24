@@ -18,6 +18,10 @@ from smilesherlock.core.tautomers import (
     TautomerResult,
     enumerate_tautomers,
 )
+from smilesherlock.core.reaction import validate_reaction, ReactionResult
+from smilesherlock.core.conformers import generate_conformers, ConformerResult
+from smilesherlock.core.scaffold import extract_scaffold, ScaffoldResult
+from smilesherlock.core.stereo import analyze_stereochemistry, StereoResult
 from smilesherlock.core.iupacname import (
     IUPACResult,
     get_iupac_name,
@@ -35,7 +39,7 @@ from smilesherlock.core.cheminfo import (
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 
@@ -170,6 +174,14 @@ __all__ = [
     "IUPACResult",
     "enumerate_tautomers",
     "TautomerResult",
+    "validate_reaction",
+    "ReactionResult",
+    "generate_conformers",
+    "ConformerResult",
+    "extract_scaffold",
+    "ScaffoldResult",
+    "analyze_stereochemistry",
+    "StereoResult",
     "SMILESValidationResult",
     "FingerprintResult",
     "FilterResult",

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-24
+
+### Added
+- **`reaction` command**: Validate and analyze Reaction SMILES (SMIRKS) strings.
+- **`conformers` command**: Generate multiple 3D conformers using RDKit's ETKDG algorithm and MMFF optimization, exported as multi-model `.sdf`.
+- **`scaffold` command**: Extract the Murcko Scaffold framework from a SMILES string (supports batch processing).
+- **`stereo` command**: Analyze a SMILES string for assigned and unassigned stereocenters, with optional `--chiral-flag` enforcement.
+- Exported new modules: `reaction.py`, `conformers.py`, `scaffold.py`, and `stereo.py` to the core API.
+
 ## [1.5.0] - 2026-08-24
 
 ### Added

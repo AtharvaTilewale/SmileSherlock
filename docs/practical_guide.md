@@ -1,4 +1,4 @@
-# SmileSherlock Practical Guide (v1.5.0)
+# SmileSherlock Practical Guide (v1.6.0)
 
 Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is designed to take you from basic lookups to advanced, multithreaded batch processing using both the Command Line Interface (CLI) and the Python API.
 
@@ -6,7 +6,7 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 
 # Table of Contents
 
-- [SmileSherlock Practical Guide (v1.5.0)](#smilesherlock-practical-guide-v110)
+- [SmileSherlock Practical Guide (v1.6.0)](#smilesherlock-practical-guide-v110)
 - [Table of Contents](#table-of-contents)
 - [1. System Management](#1-system-management)
     - [CLI Commands](#cli-commands)
@@ -37,6 +37,11 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
   - [Python API](#python-api-3)
 - [12. IUPAC Identifier Generation](#11-iupac-identifier-generation)
   - [Python API](#python-api-2)
+- [13. Advanced Cheminformatics](#13-advanced-cheminformatics)
+  - [13.1 Reaction SMILES Validation](#131-reaction-smiles-validation)
+  - [13.2 Multiple Conformer Generation](#132-multiple-conformer-generation)
+  - [13.3 Murcko Scaffold Extraction](#133-murcko-scaffold-extraction)
+  - [13.4 Stereochemistry Analysis](#134-stereochemistry-analysis)
 - [Learn More](#learn-more)
 
 ---
@@ -585,4 +590,37 @@ print(result.molecular_weight)   # 46.0419
 result = get_iupac_name("CCO", use_online=True)
 print(result.iupac_name)   # ethanol
 print(result.iupac_name_source)  # pubchem (or 'cache' on repeat calls)
+```
+
+
+---
+
+# 13. Advanced Cheminformatics
+
+## 13.1 Reaction SMILES Validation
+Validate Reaction SMILES (SMIRKS) syntax, confirming the number of reactants, agents (catalysts), and products.
+```bash
+smilesherlock reaction "CC(=O)O.OCC>>CC(=O)OCC.O"
+```
+
+## 13.2 Multiple Conformer Generation
+Generate multiple optimized 3D conformers using the ETKDG algorithm. The output must be saved as a multi-model `.sdf` file, ready for 3D virtual screening.
+```bash
+smilesherlock conformers "CCO" --num-conformers 100 --output out.sdf
+```
+
+## 13.3 Murcko Scaffold Extraction
+Remove side chains and extract the core ring framework. Highly useful for clustering High-Throughput Screening (HTS) hits.
+```bash
+# Single
+smilesherlock scaffold "CC(=O)OC1=CC=CC=C1C(=O)O"
+
+# Batch
+smilesherlock scaffold --file hits.csv --output scaffolds.csv
+```
+
+## 13.4 Stereochemistry Analysis
+Identify stereocenters (R/S) and unassigned chiral atoms (`?`). Use `--chiral-flag` to return a system error code if unassigned stereochemistry is detected (useful for strict CI pipelines).
+```bash
+smilesherlock stereo "C[C@H](O)CC" --chiral-flag
 ```

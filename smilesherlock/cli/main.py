@@ -20,6 +20,10 @@ from smilesherlock import (
     standardize_smiles, StandardizeResult, STANDARDIZE_STEPS,
     get_iupac_name, IUPACResult,
     enumerate_tautomers, TautomerResult,
+    validate_reaction, ReactionResult,
+    generate_conformers, ConformerResult,
+    extract_scaffold, ScaffoldResult,
+    analyze_stereochemistry, StereoResult,
 )
 from smilesherlock.config import settings
 from smilesherlock.core.pubchem import PubChemCompound
@@ -1401,6 +1405,158 @@ def _print_tautomer_result(result: TautomerResult) -> None:
             table.add_row(str(i), f"[{smiles_style}]{t_smi}[/{smiles_style}]", canon_marker)
             
         console.print(table)
+
+
+# =============================================================================
+# reaction command
+# =============================================================================
+
+@app.command(name="reaction")
+def reaction_cmd(
+    smiles: str = typer.Argument(..., help="Reaction SMILES (SMIRKS) string (e.g., A.B>>C)"),
+) -> None:
+    """Validate and analyze a Reaction SMILES (SMIRKS)."""
+    result = validate_reaction(smiles)
+    
+    if not result.is_valid:
+        console.print(f"[red]Error:[/red] {result.error}")
+        raise typer.Exit(code=1)
+        
+    table = Table(title="Reaction SMILES Analysis", show_lines=True)
+    table.add_column("Property", style="dim")
+    table.add_column("Value", style="bright_cyan")
+    
+    table.add_row("Input", result.input_smiles)
+    table.add_row("Reactants", str(result.num_reactants))
+    table.add_row("Agents", str(result.num_agents))
+    table.add_row("Products", str(result.num_products))
+    
+    console.print(table)
+    console.print("[green]Reaction is perfectly valid![/green]")
+
+
+# =============================================================================
+# conformers command
+# =============================================================================
+
+@app.command(name="conformers")
+def conformers_cmd(
+    smiles: str = typer.Argument(..., help="Input SMILES string."),
+    num: int = typer.Option(50, "--num-conformers", "-n", help="Number of conformers to generate."),
+    output: Path = typer.Option(..., "--output", "-o", help="Output .sdf file to save conformers."),
+) -> None:
+    """Generate multiple 3D conformers for a molecule (ETKDG + MMFF)."""
+    if output.suffix.lower() != ".sdf":
+        console.print("[red]Error:[/red] Output file must have an .sdf extension.")
+        raise typer.Exit(code=1)
+        
+    with console.status(f"[bold green]Generating {num} conformers...[/bold green]"):
+        result = generate_conformers(smiles, num_conformers=num, output_sdf=str(output))
+        
+    if result.error:
+        console.print(f"[red]Error:[/red] {result.error}")
+        raise typer.Exit(code=1)
+        
+    console.print(f"\n[bright_green]Success![/bright_green] Generated {result.num_generated} optimized 3D conformers.")
+    console.print(f"Saved to: [bright_cyan]{output}[/bright_cyan]")
+
+
+# =============================================================================
+# scaffold command
+# =============================================================================
+
+@app.command(name="scaffold")
+def scaffold_cmd(
+    smiles: str = typer.Argument(None, help="Input SMILES string."),
+    file: Optional[Path] = typer.Option(None, "--file", "-f", help="Input file (CSV/SMI) for batch processing."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output CSV to save batch results."),
+) -> None:
+    """Extract the Murcko Scaffold framework from a SMILES string."""
+    import csv
+    if smiles is None and file is None:
+        console.print("[red]Error:[/red] Provide either a SMILES argument or --file.")
+        raise typer.Exit(code=1)
+
+    if smiles and not file:
+        result = extract_scaffold(smiles)
+        if result.success:
+            console.print(f"[dim]Input:[/dim]    {smiles}")
+            console.print(f"[dim]Scaffold:[/dim] [bright_cyan]{result.scaffold_smiles}[/bright_cyan]")
+        else:
+            console.print(f"[red]Error:[/red] {result.error}")
+        return
+
+    # Batch processing
+    from smilesherlock.utils.parsers import parse_compounds_file
+    compounds = parse_compounds_file(file)
+    smiles_list = [c if isinstance(c, str) else c.get("smiles", "") for c in compounds]
+    
+    results = []
+    with console.status(f"[bold green]Extracting scaffolds for {len(smiles_list)} compounds...[/bold green]"):
+        for smi in smiles_list:
+            if smi.strip():
+                results.append(extract_scaffold(smi))
+                
+    table = Table(title=f"Scaffold Extraction ({len(results)} compounds)", show_lines=False)
+    table.add_column("Input SMILES", style="dim", max_width=40)
+    table.add_column("Murcko Scaffold", style="bright_cyan")
+    
+    for r in results:
+        table.add_row(r.input_smiles[:40], r.scaffold_smiles if r.success else f"[red]{r.error}[/red]")
+    console.print(table)
+    
+    if output:
+        with open(output, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["smiles", "scaffold", "error"])
+            writer.writeheader()
+            for r in results:
+                writer.writerow({
+                    "smiles": r.input_smiles,
+                    "scaffold": r.scaffold_smiles or "",
+                    "error": r.error or ""
+                })
+        console.print(f"[green]Saved scaffolds to:[/green] {output}")
+
+
+# =============================================================================
+# stereo command
+# =============================================================================
+
+@app.command(name="stereo")
+def stereo_cmd(
+    smiles: str = typer.Argument(..., help="Input SMILES string."),
+    chiral_flag: bool = typer.Option(False, "--chiral-flag", help="Return error code 1 if stereochemistry is unassigned."),
+) -> None:
+    """Analyze stereocenters and unassigned stereochemistry."""
+    result = analyze_stereochemistry(smiles)
+    
+    if not result.success:
+        console.print(f"[red]Error:[/red] {result.error}")
+        raise typer.Exit(code=1)
+        
+    console.print(f"\n[dim]Input SMILES:[/dim] {smiles}")
+    
+    if not result.chiral_centers:
+        console.print("[dim]No stereocenters found.[/dim]")
+        return
+        
+    table = Table(title="Stereocenters", show_lines=True)
+    table.add_column("Atom Index", justify="right")
+    table.add_column("Configuration", justify="center")
+    
+    for center in result.chiral_centers:
+        conf = center["config"]
+        color = "red" if conf == "?" else "bright_cyan"
+        table.add_row(str(center["atom_idx"]), f"[{color}]{conf}[/{color}]")
+        
+    console.print(table)
+    
+    if result.has_unassigned:
+        console.print("[yellow]Warning: Molecule has unassigned stereocenters ('?').[/yellow]")
+        if chiral_flag:
+            raise typer.Exit(code=1)
+    else:
+        console.print("[green]All stereocenters are fully assigned.[/green]")
 
 # =============================================================================
 # update command
