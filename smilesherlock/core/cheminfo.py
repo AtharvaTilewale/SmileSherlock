@@ -72,6 +72,15 @@ class SimilarityResult(BaseModel):
 _VALID_FP_TYPES = {"ecfp4", "ecfp6", "fcfp4", "maccs", "rdkit", "atompair", "torsion"}
 
 
+
+
+class SubstructureHit(BaseModel):
+    """Result model for a single substructure match."""
+
+    smiles: str
+    matched: bool
+    match_indices: List[int] = Field(default_factory=list)
+
 def _get_fp_generator(fp_type: str, n_bits: int = 2048):
     """Return an RDKit fingerprint generator for the given type."""
     t = fp_type.lower()
@@ -353,3 +362,54 @@ def compute_similarity(
     for i, r in enumerate(results, 1):
         r.rank = i
     return results
+
+
+def substructure_search(
+    query: str,
+    library: List[str],
+    is_smarts: bool = True,
+) -> List[SubstructureHit]:
+    """Search a library for compounds containing a specific substructure.
+
+    Args:
+        query: SMILES or SMARTS string representing the substructure.
+        library: List of SMILES strings to search against.
+        is_smarts: If True, parse the query as SMARTS. If False, parse as SMILES.
+
+    Returns:
+        A list of SubstructureHit objects for compounds that matched the query.
+    """
+    if not _RDKIT_AVAILABLE:
+        raise RuntimeError("RDKit is not installed.")
+
+    # Parse the query
+    if is_smarts:
+        q_mol = Chem.MolFromSmarts(query)
+        if q_mol is None:
+            raise ValueError(f"Invalid SMARTS query: {query}")
+    else:
+        q_mol = Chem.MolFromSmiles(query)
+        if q_mol is None:
+            raise ValueError(f"Invalid SMILES query: {query}")
+
+    hits = []
+    for smi in library:
+        if not smi:
+            continue
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            continue
+
+        if mol.HasSubstructMatch(q_mol):
+            # Get the indices of the atoms in the target molecule that match the query
+            match = mol.GetSubstructMatch(q_mol)
+            hits.append(
+                SubstructureHit(
+                    smiles=smi,
+                    matched=True,
+                    match_indices=list(match),
+                )
+            )
+
+    return hits
+

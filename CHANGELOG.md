@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-24
+
+### Added
+- **`tautomers` command**: Enumerate all plausible tautomers for a given SMILES string.
+  - Critical for protein-ligand docking preparation.
+  - Exposes RDKit's `MolStandardize.TautomerEnumerator`.
+  - Batch processing support with `--file` and `--output` (exports one row per tautomer, exploding the dataset).
+  - New Python API `enumerate_tautomers()` returning `TautomerResult`.
+
+- **`substructure` command**: Search a library for compounds containing a specific molecular fragment or functional group.
+  - Uses RDKit's `HasSubstructMatch` algorithm.
+  - Supports both SMARTS (default) and strict SMILES queries (`--smiles-query`).
+  - Batch processing support with `--file` and `--output` to save matching compounds.
+  - New Python API `substructure_search()` returning `SubstructureHit`.
+
 ## [1.4.0] - 2026-08-23
 
 ### Added

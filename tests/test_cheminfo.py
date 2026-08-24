@@ -2,6 +2,7 @@
 
 import pytest
 from smilesherlock.core.cheminfo import (
+    substructure_search, SubstructureHit,
     FingerprintResult,
     FilterResult,
     SimilarityResult,
@@ -270,3 +271,40 @@ class TestComputeSimilarity:
         library_with_bad = [ETHANOL, INVALID_SMILES, CAFFEINE]
         hits = compute_similarity(ASPIRIN, library_with_bad)
         assert all(h.hit != INVALID_SMILES for h in hits)
+
+
+class TestSubstructureSearch:
+    def test_smarts_search_matches(self):
+        library = ["CCO", "CC(=O)OC1=CC=CC=C1C(=O)O", "c1ccccc1"]
+        # Carboxylic acid SMARTS
+        hits = substructure_search("C(=O)[OH]", library, is_smarts=True)
+        assert len(hits) == 1
+        assert hits[0].smiles == "CC(=O)OC1=CC=CC=C1C(=O)O"
+        assert hits[0].matched is True
+        assert len(hits[0].match_indices) > 0
+
+    def test_smarts_search_no_matches(self):
+        library = ["CCO", "c1ccccc1"]
+        # Halogen SMARTS
+        hits = substructure_search("[#9,#17,#35,#53]", library, is_smarts=True)
+        assert len(hits) == 0
+
+    def test_smiles_search_matches(self):
+        library = ["CCO", "CC(=O)OC1=CC=CC=C1C(=O)O", "c1ccccc1"]
+        # Benzene ring SMILES
+        hits = substructure_search("c1ccccc1", library, is_smarts=False)
+        assert len(hits) == 2
+        assert "c1ccccc1" in [h.smiles for h in hits]
+        assert "CC(=O)OC1=CC=CC=C1C(=O)O" in [h.smiles for h in hits]
+
+    def test_invalid_smarts_raises(self):
+        library = ["CCO"]
+        import pytest
+        with pytest.raises(ValueError, match="Invalid SMARTS query"):
+            substructure_search("invalid-smarts!!!", library, is_smarts=True)
+
+    def test_invalid_smiles_raises(self):
+        library = ["CCO"]
+        import pytest
+        with pytest.raises(ValueError, match="Invalid SMILES query"):
+            substructure_search("invalid-smiles!!!", library, is_smarts=False)

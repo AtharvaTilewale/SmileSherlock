@@ -204,6 +204,34 @@ for s in result.step_results:
 
 ---
 
+
+## Tautomer Enumeration
+
+Enumerate all plausible tautomers for a given SMILES string. Critical for protein-ligand docking preparation where different tautomeric states have different binding affinities.
+
+```bash
+# Single compound
+smilesherlock tautomers "Oc1nc(O)c2nc[nH]c2n1"
+
+# Batch from CSV (outputs one row per tautomer)
+smilesherlock tautomers --file ligands.csv --output tautomers.csv
+```
+
+### Python API
+
+```python
+from smilesherlock import enumerate_tautomers
+
+result = enumerate_tautomers("Oc1nc(O)c2nc[nH]c2n1", max_tautomers=1000)
+print(result.num_tautomers)        # e.g., 15
+print(result.canonical_tautomer)   # O=c1[nH]c(=O)c2[nH]cnc2[nH]1
+
+for t in result.tautomers:
+    print(t)
+```
+
+---
+
 ## IUPAC Identifier Generation
 
 Generate InChI, InChIKey, formula, MW offline. Fetch IUPAC systematic name via PubChem with local caching.

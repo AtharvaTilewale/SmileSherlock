@@ -14,6 +14,10 @@ from smilesherlock.core.standardize import (
     standardize_smiles,
     VALID_STEPS as STANDARDIZE_STEPS,
 )
+from smilesherlock.core.tautomers import (
+    TautomerResult,
+    enumerate_tautomers,
+)
 from smilesherlock.core.iupacname import (
     IUPACResult,
     get_iupac_name,
@@ -29,7 +33,7 @@ from smilesherlock.core.cheminfo import (
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 

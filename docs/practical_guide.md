@@ -1,4 +1,4 @@
-# SmileSherlock Practical Guide (v1.4.0)
+# SmileSherlock Practical Guide (v1.5.0)
 
 Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is designed to take you from basic lookups to advanced, multithreaded batch processing using both the Command Line Interface (CLI) and the Python API.
 
@@ -6,7 +6,7 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 
 # Table of Contents
 
-- [SmileSherlock Practical Guide (v1.4.0)](#smilesherlock-practical-guide-v110)
+- [SmileSherlock Practical Guide (v1.5.0)](#smilesherlock-practical-guide-v110)
 - [Table of Contents](#table-of-contents)
 - [1. System Management](#1-system-management)
     - [CLI Commands](#cli-commands)
@@ -27,12 +27,15 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 - [7. Similarity Search](#7-similarity-search)
   - [CLI Examples](#cli)
   - [Python API Examples](#python-api)
-- [8. Drug-Likeness Filtering (ADMET)](#8-drug-likeness-filtering-admet)
+- [8. Substructure Search](#8-substructure-search)\n  - [CLI](#cli)\n  - [Python API](#python-api)\n- [9. Drug-Likeness Filtering (ADMET)](#8-drug-likeness-filtering-admet)
   - [CLI Examples](#cli)
   - [Python API Examples](#python-api)
-- [9. Standardization Pipeline](#9-standardization-pipeline)
+- [10. Standardization Pipeline](#9-standardization-pipeline)
   - [Python API](#python-api-1)
-- [10. IUPAC Identifier Generation](#10-iupac-identifier-generation)
+- [11. Tautomer Enumeration](#10-tautomer-enumeration)
+  - [CLI](#cli)
+  - [Python API](#python-api-3)
+- [12. IUPAC Identifier Generation](#11-iupac-identifier-generation)
   - [Python API](#python-api-2)
 - [Learn More](#learn-more)
 
@@ -346,7 +349,47 @@ for hit in hits:
 
 ---
 
-# 8. Drug-Likeness Filtering (ADMET)
+
+---
+
+# 8. Substructure Search
+
+Search a compound library for molecules that contain a specific substructural fragment or functional group. This is highly useful for identifying compounds with a required pharmacophore or structural alert.
+
+## CLI
+
+```bash
+# Search using a SMARTS query (default). This searches for a carboxylic acid.
+smilesherlock substructure "C(=O)[OH]" --file library.csv
+
+# Search using a SMILES query (e.g. benzene ring)
+smilesherlock substructure "c1ccccc1" --file compounds.smi --smiles-query
+
+# Save only the matching compounds to a new CSV file
+smilesherlock substructure "[#9,#17,#35,#53]" --file library.csv --output halogens_only.csv
+```
+
+## Python API
+
+```python
+from smilesherlock import substructure_search
+
+library = [
+    "CCO", 
+    "CC(=O)OC1=CC=CC=C1C(=O)O", 
+    "c1ccccc1", 
+    "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
+]
+
+# Query for carboxylic acid using SMARTS
+hits = substructure_search("C(=O)[OH]", library, is_smarts=True)
+
+print(f"Found {len(hits)} matches:")
+for hit in hits:
+    print(f"- {hit.smiles} (Atoms matched: {hit.match_indices})")
+```
+
+# 9. Drug-Likeness Filtering (ADMET)
 
 Evaluate compounds against standard drug-likeness rules and PAINS alerts.
 
@@ -412,7 +455,7 @@ print(f"Drug-like compounds: {len(passing)}/{len(library)}")
 
 ---
 
-# 9. Standardization Pipeline
+# 10. Standardization Pipeline
 
 Clean up "dirty" SMILES from databases using RDKit's MolStandardize:
 
@@ -460,7 +503,49 @@ result = standardize_smiles("O=C([O-])c1ccccc1", steps=["neutralize", "canonical
 
 ---
 
-# 10. IUPAC Identifier Generation
+
+---
+
+# 11. Tautomer Enumeration
+
+Different tautomers of a single molecule can exhibit vastly different binding affinities to a target protein. Enumerating plausible tautomeric states is a critical preparation step for structure-based virtual screening and molecular docking.
+
+## CLI
+
+```bash
+# Single compound
+smilesherlock tautomers "Oc1nc(O)c2nc[nH]c2n1"
+
+# Restrict the maximum number of tautomers generated
+smilesherlock tautomers "Oc1nc(O)c2nc[nH]c2n1" --max 50
+
+# Batch process a CSV file
+# NOTE: The output CSV will "explode" the dataset, meaning if an input SMILES 
+# produces 15 tautomers, the output CSV will contain 15 rows for that input.
+smilesherlock tautomers --file ligands.csv --output all_tautomers.csv
+```
+
+## Python API
+
+```python
+from smilesherlock import enumerate_tautomers
+
+# Enumerate tautomers
+result = enumerate_tautomers("Oc1nc(O)c2nc[nH]c2n1", max_tautomers=100)
+
+if result.success:
+    print(f"Generated {result.num_tautomers} tautomers.")
+    print(f"Canonical tautomer: {result.canonical_tautomer}")
+    
+    # Iterate through them
+    for t_smi in result.tautomers:
+        is_canonical = (t_smi == result.canonical_tautomer)
+        print(f"{t_smi} (Canonical: {is_canonical})")
+else:
+    print(f"Error: {result.error}")
+```
+
+# 12. IUPAC Identifier Generation
 
 Generate systematic identifiers from SMILES, fully offline.
 

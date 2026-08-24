@@ -16,8 +16,10 @@ from smilesherlock import (
     __version__, lookup, lookup_file, download_structure, generate_structure, validate_smiles,
     compute_fingerprint, apply_filters, compute_similarity,
     FingerprintResult, FilterResult, SimilarityResult,
+    substructure_search, SubstructureHit,
     standardize_smiles, StandardizeResult, STANDARDIZE_STEPS,
     get_iupac_name, IUPACResult,
+    enumerate_tautomers, TautomerResult,
 )
 from smilesherlock.config import settings
 from smilesherlock.core.pubchem import PubChemCompound
@@ -1211,6 +1213,194 @@ def _print_iupacname_result(result: IUPACResult) -> None:
     console.print(Panel(body, title="[bold bright_cyan]IUPAC Identifier Result[/bold bright_cyan]",
                          border_style="bright_cyan", padding=(0, 2)))
 
+
+
+
+# =============================================================================
+# substructure command
+# =============================================================================
+
+@app.command(name="substructure")
+def substructure_cmd(
+    query: str = typer.Argument(..., help="The substructure query (SMARTS or SMILES)."),
+    file: Path = typer.Option(..., "--file", "-f", help="Library file to search (CSV or .smi, one SMILES per line)."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save matching SMILES to CSV."),
+    smiles_query: bool = typer.Option(False, "--smiles-query", help="Treat the query strictly as a SMILES string (default assumes SMARTS)."),
+) -> None:
+    """Search a library for compounds containing a specific substructure.
+    
+    Uses RDKit's HasSubstructMatch. Query is assumed to be SMARTS by default 
+    for maximum expressive power (e.g. `[#9,#17]` for halogen).
+    """
+    import csv
+    from smilesherlock.utils.parsers import parse_compounds_file
+
+    compounds = parse_compounds_file(file)
+    library_smiles = [c if isinstance(c, str) else c.get("smiles", "") for c in compounds]
+    
+    with console.status(f"[bold green]Searching {len(library_smiles)} compounds for substructure...[/bold green]"):
+        try:
+            hits = substructure_search(query=query, library=library_smiles, is_smarts=not smiles_query)
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            raise typer.Exit(code=1)
+
+    table = Table(title=f"Substructure Search Results", show_lines=False)
+    table.add_column("Match SMILES", style="bright_cyan")
+    table.add_column("Matched Atoms (indices)", style="dim")
+    
+    for hit in hits:
+        table.add_row(
+            hit.smiles,
+            str(hit.match_indices)
+        )
+    console.print(table)
+    
+    query_type = "SMILES" if smiles_query else "SMARTS"
+    console.print(
+        f"\n[bold]Summary:[/bold] Found [bright_green]{len(hits)}[/bright_green] matches out of {len(library_smiles)} "
+        f"compounds for {query_type} query: '{query}'."
+    )
+    
+    if output:
+        with open(output, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["smiles", "match_indices"],
+            )
+            writer.writeheader()
+            for hit in hits:
+                writer.writerow({
+                    "smiles": hit.smiles,
+                    "match_indices": ",".join(map(str, hit.match_indices)),
+                })
+        console.print(f"[green]Results saved to:[/green] {output}")
+
+# =============================================================================
+# tautomers command
+# =============================================================================
+
+@app.command(name="tautomers")
+def tautomers_cmd(
+    smiles: str = typer.Argument(None, help="Input SMILES string."),
+    max_tautomers: int = typer.Option(1000, "--max", "-m", help="Maximum number of tautomers to generate."),
+    file: Optional[Path] = typer.Option(None, "--file", "-f", help="Input file (CSV or .smi, one SMILES per line)."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to CSV (one row per tautomer)."),
+) -> None:
+    """Enumerate all plausible tautomers for a given SMILES string.
+    
+    Critical for protein-ligand docking preparation as different tautomers 
+    can bind with vastly different affinities. Fully offline via RDKit.
+    """
+    import csv
+
+    if smiles is None and file is None:
+        console.print("[red]Error:[/red] Provide either a SMILES argument or --file.")
+        raise typer.Exit(code=1)
+
+    # Single SMILES mode
+    if smiles and file is None:
+        result = enumerate_tautomers(smiles, max_tautomers=max_tautomers)
+        _print_tautomer_result(result)
+        return
+
+    # Batch file mode
+    from smilesherlock.utils.parsers import parse_compounds_file
+    compounds = parse_compounds_file(file)
+    smiles_list = [c if isinstance(c, str) else c.get("smiles", "") for c in compounds]
+
+    results = []
+    with console.status(f"[bold green]Enumerating tautomers for {len(smiles_list)} compounds...[/bold green]"):
+        for smi in smiles_list:
+            if not smi.strip():
+                continue
+            r = enumerate_tautomers(smi, max_tautomers=max_tautomers)
+            results.append(r)
+
+    # Print summary table
+    table = Table(title=f"Tautomer Enumeration Results ({len(results)} compounds)", show_lines=False)
+    table.add_column("Input SMILES", style="dim", max_width=35)
+    table.add_column("Tautomers Found", justify="right", style="bright_cyan")
+    table.add_column("Error", style="red", max_width=25)
+
+    total_tauts = 0
+    for r in results:
+        table.add_row(
+            r.input_smiles[:35],
+            str(r.num_tautomers) if r.success else "-",
+            r.error or "",
+        )
+        total_tauts += r.num_tautomers
+    console.print(table)
+
+    console.print(
+        f"\n[bold]Summary:[/bold] {len(results)} inputs generated "
+        f"[bright_green]{total_tauts} total tautomers[/bright_green]."
+    )
+
+    if output:
+        # Explode mode: one row per tautomer
+        with open(output, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["input_smiles", "tautomer_smiles", "is_canonical", "error"],
+            )
+            writer.writeheader()
+            for r in results:
+                if not r.success:
+                    writer.writerow({
+                        "input_smiles": r.input_smiles,
+                        "tautomer_smiles": "",
+                        "is_canonical": "",
+                        "error": r.error,
+                    })
+                else:
+                    for t_smi in r.tautomers:
+                        writer.writerow({
+                            "input_smiles": r.input_smiles,
+                            "tautomer_smiles": t_smi,
+                            "is_canonical": str(t_smi == r.canonical_tautomer),
+                            "error": "",
+                        })
+        console.print(f"[green]Results saved to:[/green] {output} [dim](exploded to {total_tauts} rows)[/dim]")
+
+
+def _print_tautomer_result(result: TautomerResult) -> None:
+    """Pretty-print a single TautomerResult."""
+    from rich.panel import Panel
+    from rich.text import Text
+
+    if not result.success:
+        console.print(f"[red]Error:[/red] {result.error}")
+        return
+
+    body = Text()
+    body.append("\n")
+    body.append("  Input:           ", style="dim white")
+    body.append(result.input_smiles, style="white")
+    body.append("\n")
+    body.append("  Tautomers found: ", style="dim white")
+    body.append(str(result.num_tautomers), style="bold bright_cyan")
+    body.append("\n")
+
+    console.print(Panel(body, title="[bold bright_cyan]Tautomer Enumeration[/bold bright_cyan]",
+                         border_style="bright_cyan", padding=(0, 2)))
+
+    if result.tautomers:
+        console.print()
+        table = Table(title=f"All {result.num_tautomers} Tautomers", show_lines=True)
+        table.add_column("#", style="dim", justify="right")
+        table.add_column("SMILES", style="white")
+        table.add_column("Canonical", justify="center")
+        
+        for i, t_smi in enumerate(result.tautomers, 1):
+            is_canon = (t_smi == result.canonical_tautomer)
+            canon_marker = "[bright_green]Yes[/bright_green]" if is_canon else "[dim]No[/dim]"
+            smiles_style = "bright_cyan bold" if is_canon else "white"
+            
+            table.add_row(str(i), f"[{smiles_style}]{t_smi}[/{smiles_style}]", canon_marker)
+            
+        console.print(table)
 
 # =============================================================================
 # update command
