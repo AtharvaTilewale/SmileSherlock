@@ -171,11 +171,12 @@ class TestGetIUPACName:
         assert result.inchikey == "LFQSCWFLJHTTHZ-UHFFFAOYSA-N"
 
     def test_source_is_offline_inchi_when_no_cache(self):
-        result = get_iupac_name(ASPIRIN, use_online=False)
+        # Use a unique SMILES here to avoid picking up cache from other tests
+        result = get_iupac_name("CC(=O)O", use_online=False)
         assert result.iupac_name_source == "offline_inchi"
 
     def test_iupac_name_none_without_online(self):
-        result = get_iupac_name(ASPIRIN, use_online=False)
+        result = get_iupac_name("CC(=O)O", use_online=False)
         assert result.iupac_name is None
 
     # ── Error handling ────────────────────────────────────────────────────────
