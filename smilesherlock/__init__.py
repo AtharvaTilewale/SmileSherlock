@@ -26,9 +26,11 @@ from smilesherlock.core.cheminfo import (
     FingerprintResult,
     FilterResult,
     SimilarityResult,
+    SubstructureHit,
     compute_fingerprint,
     apply_filters,
     compute_similarity,
+    substructure_search,
 )
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
@@ -159,6 +161,15 @@ __all__ = [
     "compute_fingerprint",
     "apply_filters",
     "compute_similarity",
+    "substructure_search",
+    "SubstructureHit",
+    "standardize_smiles",
+    "StandardizeResult",
+    "STANDARDIZE_STEPS",
+    "get_iupac_name",
+    "IUPACResult",
+    "enumerate_tautomers",
+    "TautomerResult",
     "SMILESValidationResult",
     "FingerprintResult",
     "FilterResult",
