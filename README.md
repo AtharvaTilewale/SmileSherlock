@@ -6,7 +6,7 @@
 
 A high-performance, production-grade tool for SMILES validation, PubChem lookup, and chemical structure retrieval.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21763825.svg)](https://doi.org/10.5281/zenodo.21763825)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22078182.svg)](https://doi.org/10.5281/zenodo.22078182)
 [![PyPI](https://img.shields.io/pypi/v/smilesherlock)](https://pypi.org/project/smilesherlock/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
