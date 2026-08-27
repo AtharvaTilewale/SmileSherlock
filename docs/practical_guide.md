@@ -1,4 +1,4 @@
-# SmileSherlock Practical Guide (v1.6.0)
+# SmileSherlock Practical Guide (v1.7.0)
 
 Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is designed to take you from basic lookups to advanced, multithreaded batch processing using both the Command Line Interface (CLI) and the Python API.
 
@@ -6,7 +6,7 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
 
 # Table of Contents
 
-- [SmileSherlock Practical Guide (v1.6.0)](#smilesherlock-practical-guide-v110)
+- [SmileSherlock Practical Guide (v1.7.0)](#smilesherlock-practical-guide-v110)
 - [Table of Contents](#table-of-contents)
 - [1. System Management](#1-system-management)
     - [CLI Commands](#cli-commands)
@@ -42,6 +42,9 @@ Welcome to the comprehensive tutorial for **SmileSherlock**. This guide is desig
   - [13.2 Multiple Conformer Generation](#132-multiple-conformer-generation)
   - [13.3 Murcko Scaffold Extraction](#133-murcko-scaffold-extraction)
   - [13.4 Stereochemistry Analysis](#134-stereochemistry-analysis)
+  - [13.5 R-Group Decomposition](#135-r-group-decomposition)
+  - [13.6 SMILES Augmentation](#136-smiles-augmentation)
+  - [13.7 Atom Mapping](#137-atom-mapping)
 - [Learn More](#learn-more)
 
 ---
@@ -623,4 +626,23 @@ smilesherlock scaffold --file hits.csv --output scaffolds.csv
 Identify stereocenters (R/S) and unassigned chiral atoms (`?`). Use `--chiral-flag` to return a system error code if unassigned stereochemistry is detected (useful for strict CI pipelines).
 ```bash
 smilesherlock stereo "C[C@H](O)CC" --chiral-flag
+```
+
+
+## 13.5 R-Group Decomposition
+Decompose a library of molecules against a core SMARTS scaffold.
+```bash
+smilesherlock rgroup --core "c1ccccc1" --smiles "Cc1ccccc1,c1ccccc1F"
+```
+
+## 13.6 SMILES Augmentation
+Generate a set of unique uncanonical SMILES representing the same molecule, highly useful for deep learning model augmentation.
+```bash
+smilesherlock augment "CC(=O)OC1=CC=CC=C1C(=O)O" --num 10
+```
+
+## 13.7 Atom Mapping
+Assign map indices to every atom, useful for reaction tracking and graph networks.
+```bash
+smilesherlock atommap "CCO"
 ```

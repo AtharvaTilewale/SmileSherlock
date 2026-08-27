@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-27
+
+### Added
+- **`rgroup` command**: Perform R-Group Decomposition against a common core SMARTS.
+- **`augment` command**: Generate uncanonical/randomized SMILES strings for ML data augmentation.
+- **`atommap` command**: Assign unique atom mapping numbers to all atoms in a molecule.
+- Exported new core API modules: `rgroup.py`, `augment.py`, and `atommap.py`.
+
+### Tests
+- Added `tests/test_rgroup.py` with 11 tests for R-Group decomposition.
+- Added `tests/test_augment.py` with 10 tests for SMILES augmentation.
+- Added `tests/test_atommap.py` with 10 tests for atom mapping.
+
+## [1.6.0] - 2026-08-24
+
+### Added
+- **`reaction` command**: Validate and analyze Reaction SMILES (SMIRKS) strings.
+- **`conformers` command**: Generate multiple 3D conformers using RDKit's ETKDG algorithm and MMFF optimization, exported as multi-model `.sdf`.
+- **`scaffold` command**: Extract the Murcko Scaffold framework from a SMILES string (supports batch processing).
+- **`stereo` command**: Analyze a SMILES string for assigned and unassigned stereocenters, with optional `--chiral-flag` enforcement.
+- Exported new modules: `reaction.py`, `conformers.py`, `scaffold.py`, and `stereo.py` to the core API.
+
+### Tests
+- Added `tests/test_reaction.py` with 10 tests for reaction validation.
+- Added `tests/test_conformers.py` with 14 tests for conformer generation.
+- Added `tests/test_scaffold.py` with 9 tests for scaffold extraction.
+- Added `tests/test_stereo.py` with 10 tests for stereocenter analysis.
+- Total: 151 offline tests passing (+ 10 integration tests).
+
+## [1.5.0] - 2026-08-24
+
+### Added
+- **`tautomers` command**: Enumerate all plausible tautomers for a given SMILES string.
+  - Critical for protein-ligand docking preparation.
+  - Exposes RDKit's `MolStandardize.TautomerEnumerator`.
+  - Batch processing support with `--file` and `--output` (exports one row per tautomer, exploding the dataset).
+  - New Python API `enumerate_tautomers()` returning `TautomerResult`.
+
+- **`substructure` command**: Search a library for compounds containing a specific molecular fragment or functional group.
+  - Uses RDKit's `HasSubstructMatch` algorithm.
+  - Supports both SMARTS (default) and strict SMILES queries (`--smiles-query`).
+  - Batch processing support with `--file` and `--output` to save matching compounds.
+  - New Python API `substructure_search()` returning `SubstructureHit`.
+
 ## [1.4.0] - 2026-08-23
 
 ### Added

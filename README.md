@@ -287,7 +287,7 @@ If you use SmileSherlock in your research, please cite:
   doi={10.5281/zenodo.22078775},
   month={8},
   title={SmileSherlock: A High-Performance SMILES Validation and PubChem Lookup Tool},
-  version={1.6.0},
+  version={1.7.0},
   year={2026},
   url={https://github.com/AtharvaTilewale/SmileSherlock}
 }

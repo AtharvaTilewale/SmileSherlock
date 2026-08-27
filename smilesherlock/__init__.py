@@ -18,6 +18,9 @@ from smilesherlock.core.tautomers import (
     TautomerResult,
     enumerate_tautomers,
 )
+from smilesherlock.core.rgroup import rgroup_decomposition, RGroupResult
+from smilesherlock.core.augment import augment_smiles, AugmentResult
+from smilesherlock.core.atommap import map_atoms, AtomMapResult
 from smilesherlock.core.reaction import validate_reaction, ReactionResult
 from smilesherlock.core.conformers import generate_conformers, ConformerResult
 from smilesherlock.core.scaffold import extract_scaffold, ScaffoldResult
@@ -39,7 +42,7 @@ from smilesherlock.core.cheminfo import (
 from smilesherlock.utils.parsers import parse_compounds_file
 from smilesherlock.utils.export import export_results
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 __author__ = "Atharva Tilewale"
 __license__ = "MIT"
 
@@ -174,6 +177,12 @@ __all__ = [
     "IUPACResult",
     "enumerate_tautomers",
     "TautomerResult",
+    "rgroup_decomposition",
+    "RGroupResult",
+    "augment_smiles",
+    "AugmentResult",
+    "map_atoms",
+    "AtomMapResult",
     "validate_reaction",
     "ReactionResult",
     "generate_conformers",

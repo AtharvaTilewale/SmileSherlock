@@ -24,6 +24,9 @@ from smilesherlock import (
     generate_conformers, ConformerResult,
     extract_scaffold, ScaffoldResult,
     analyze_stereochemistry, StereoResult,
+    rgroup_decomposition, RGroupResult,
+    augment_smiles, AugmentResult,
+    map_atoms, AtomMapResult,
 )
 from smilesherlock.config import settings
 from smilesherlock.core.pubchem import PubChemCompound
@@ -1557,6 +1560,108 @@ def stereo_cmd(
             raise typer.Exit(code=1)
     else:
         console.print("[green]All stereocenters are fully assigned.[/green]")
+
+
+# =============================================================================
+# rgroup command
+# =============================================================================
+
+@app.command(name="rgroup")
+def rgroup_cmd(
+    core: str = typer.Option(..., "--core", "-c", help="SMARTS string representing the core scaffold."),
+    smiles: Optional[str] = typer.Option(None, "--smiles", "-s", help="Comma-separated SMILES strings to decompose."),
+    file: Optional[Path] = typer.Option(None, "--file", "-f", help="CSV/SMI file containing SMILES."),
+) -> None:
+    """Perform R-Group Decomposition against a common core."""
+    if not smiles and not file:
+        console.print("[red]Error:[/red] Must provide either --smiles or --file.")
+        raise typer.Exit(1)
+        
+    smiles_list = []
+    if smiles:
+        smiles_list.extend([s.strip() for s in smiles.split(",") if s.strip()])
+        
+    if file:
+        from smilesherlock.utils.parsers import parse_compounds_file
+        compounds = parse_compounds_file(file)
+        smiles_list.extend([c if isinstance(c, str) else c.get("smiles", "") for c in compounds])
+        
+    with console.status(f"[bold green]Decomposing {len(smiles_list)} molecules...[/bold green]"):
+        results = rgroup_decomposition(core, smiles_list)
+        
+    table = Table(title="R-Group Decomposition", show_lines=True)
+    table.add_column("Input SMILES", style="dim")
+    
+    # Collect all unique R-group labels
+    all_keys = set()
+    for r in results:
+        if r.is_matched:
+            all_keys.update(r.decomposition.keys())
+            
+    # Sort keys: Core first, then R1, R2, etc.
+    sorted_keys = sorted(list(all_keys), key=lambda k: (0 if k == "Core" else 1, k))
+    
+    for k in sorted_keys:
+        table.add_column(k, justify="center")
+        
+    table.add_column("Status", justify="right")
+    
+    for r in results:
+        row = [r.input_smiles]
+        for k in sorted_keys:
+            if r.is_matched:
+                row.append(r.decomposition.get(k, ""))
+            else:
+                row.append("")
+        if r.is_matched:
+            row.append("[green]Matched[/green]")
+        else:
+            row.append(f"[red]{r.error}[/red]")
+        table.add_row(*row)
+        
+    console.print(table)
+
+
+# =============================================================================
+# augment command
+# =============================================================================
+
+@app.command(name="augment")
+def augment_cmd(
+    smiles: str = typer.Argument(..., help="Input SMILES string to augment."),
+    num: int = typer.Option(5, "--num", "-n", help="Number of augmented SMILES to generate."),
+) -> None:
+    """Generate uncanonical/randomized SMILES strings for data augmentation."""
+    result = augment_smiles(smiles, num_augmentations=num)
+    
+    if not result.success:
+        console.print(f"[red]Error:[/red] {result.error}")
+        raise typer.Exit(1)
+        
+    console.print(f"\n[dim]Input:[/dim] {smiles}")
+    console.print(f"[bold green]Generated {len(result.augmented_smiles)} variations:[/bold green]")
+    
+    for i, s in enumerate(result.augmented_smiles, 1):
+        console.print(f"  {i}. [bright_cyan]{s}[/bright_cyan]")
+
+
+# =============================================================================
+# atommap command
+# =============================================================================
+
+@app.command(name="atommap")
+def atommap_cmd(
+    smiles: str = typer.Argument(..., help="Input SMILES string to map."),
+) -> None:
+    """Assign unique atom map numbers to all atoms in a molecule."""
+    result = map_atoms(smiles)
+    
+    if not result.success:
+        console.print(f"[red]Error:[/red] {result.error}")
+        raise typer.Exit(1)
+        
+    console.print(f"\n[dim]Input:[/dim]  {smiles}")
+    console.print(f"[dim]Mapped:[/dim] [bright_cyan]{result.mapped_smiles}[/bright_cyan]\n")
 
 # =============================================================================
 # update command
