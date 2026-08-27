@@ -168,3 +168,4 @@ cython_debug/
 .smilesherlock
 *.sdf
 *.csv
+docs/assets/Thumbs.db
